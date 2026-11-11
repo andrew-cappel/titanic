@@ -325,11 +325,17 @@ function accept(i,bad){const inp=$("answer"),msg=$("msg");
 async function verify(v,r,bad){
   const msg=$("msg");msg.textContent=`Checking “${v}”…`;msg.className="msg";$("answer").value="";
   try{
-    const s=await fetch("https://www.wikidata.org/w/api.php?"+new URLSearchParams({action:"wbsearchentities",search:v,language:"en",uselang:"en",type:"item",limit:"10",format:"json",origin:"*"})).then(x=>x.json());
-    const found=s.search||[];if(!found.length)throw 0;
-    const q=`SELECT ?x WHERE { VALUES ?x { ${found.map(x=>"wd:"+x.id).join(" ")} } ${r.pr.qid?`VALUES ?s { wd:${r.pr.qid} }`:""} ${r.pr.body} }`;
-    const j=await fetch("https://query.wikidata.org/sparql?format=json&query="+encodeURIComponent(q)).then(x=>x.json());
-    const ok=new Set(j.results.bindings.map(b=>b.x.value.split("/").pop())),hit=found.find(x=>ok.has(x.id));
+    const s=await fetch("https://www.wikidata.org/w/api.php?"+new URLSearchParams({action:"wbsearchentities",search:v,language:"en",uselang:"en",type:"item",limit:"20",format:"json",origin:"*"})).then(x=>x.json());
+    const found=s.search||[],tc=v.replace(/\b\w/g,c=>c.toUpperCase()),labs=[...new Set([v,v.toLowerCase(),tc])].map(x=>JSON.stringify(x)+"@en").join(" ");
+    const sp=q=>fetch("https://query.wikidata.org/sparql?format=json&query="+encodeURIComponent(q)).then(x=>x.json()).then(j=>j.results.bindings);
+    // 1) candidates: search results plus anything whose exact name or alias is what was typed (fast lookups)
+    const byName=(await sp(`SELECT DISTINCT ?x WHERE { VALUES ?l { ${labs} } { ?x rdfs:label ?l } UNION { ?x skos:altLabel ?l } } LIMIT 60`)).map(b=>b.x.value.split("/").pop());
+    const ids=[...new Set([...found.map(x=>x.id),...byName])];if(!ids.length)throw 0;
+    // 2) which candidates actually fit the prompt
+    const q=`SELECT ?x ?xl WHERE { VALUES ?x { ${ids.map(x=>"wd:"+x).join(" ")} } ${r.pr.qid?`VALUES ?s { wd:${r.pr.qid} }`:""} ${r.pr.body} OPTIONAL { ?x rdfs:label ?xl FILTER(LANG(?xl)="en") } }`;
+    const j={results:{bindings:await sp(q)}};
+    const rows=j.results.bindings.map(b=>({id:b.x.value.split("/").pop(),label:(b.xl?b.xl.value:v).replace(/^[a-z]/,c=>c.toUpperCase())}));
+    const hit=found.map(x=>rows.find(y=>y.id===x.id)).find(Boolean)||rows[0];
     if(run!==r)return;if(!hit)throw 0;
     let i=r.pr.a.findIndex(a=>a.id===hit.id);
     if(i<0){r.pr.a.push({label:hit.label,keys:[norm(hit.label)],id:hit.id});i=r.pr.a.length-1}

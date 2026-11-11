@@ -27,25 +27,25 @@ T = {
    "Pixar Animation Studios=Pixar|Walt Disney Animation Studios|DreamWorks Animation|Studio Ghibli|Marvel Studios|Lucasfilm|Blumhouse Productions|A24|Illumination|Aardman Animations|Legendary Entertainment|Amblin Entertainment"),
  "tv_network": ("tv", "Name five TV series that aired on {}", "?x wdt:P449 ?s; wdt:P31/wdt:P279* wd:Q5398426.", 20,
    "HBO|NBC|CBS|American Broadcasting Company=ABC|Netflix|BBC One|Fox Broadcasting Company=Fox|AMC|Disney Channel|Cartoon Network|Nickelodeon|MTV|Comedy Central|FX|Showtime|The CW|Adult Swim|Prime Video|Hulu|Channel 4"),
- "characters": ("tv", "Name five characters from {}", "?x wdt:P1441 ?s.", 3,
+ "characters": ("tv", "Name five characters from {}", "{ ?x wdt:P1441 ?s } UNION { ?x wdt:P1080 ?s } UNION { ?x wdt:P8345 ?s }", 3,
    "The Simpsons|Friends|Game of Thrones|Breaking Bad|The Office|The Lord of the Rings|Stranger Things|Seinfeld|Family Guy|SpongeBob SquarePants|Twin Peaks|The Sopranos|Doctor Who|Star Trek: The Next Generation|One Piece|Naruto|Mad Men|Lost|Buffy the Vampire Slayer|South Park|Pride and Prejudice|Hamlet"),
  "albums": ("music", "Name five albums by {}", "?x wdt:P175 ?s; wdt:P31/wdt:P279* wd:Q482994.", 3,
    "Taylor Swift|The Beatles|Beyoncé|Radiohead|David Bowie|Madonna|Pink Floyd|Kanye West|Drake|Led Zeppelin|Bob Dylan|Prince|Metallica|Coldplay|Eminem|Kendrick Lamar|Fleetwood Mac|The Rolling Stones|Elton John|Bruce Springsteen|Daft Punk|Green Day|Arctic Monkeys"),
  "songs": ("music", "Name five songs by {}", "?x wdt:P175 ?s; wdt:P31/wdt:P279* wd:Q7366.", 4,
    "Michael Jackson|ABBA|Elvis Presley|Taylor Swift|Rihanna|Lady Gaga|Bruce Springsteen|Elton John|Dolly Parton|Bon Jovi|Nirvana|The Beatles|Queen band=Queen|Whitney Houston|Britney Spears|Ed Sheeran|Bob Marley|Johnny Cash|The Beach Boys|Stevie Wonder"),
- "members": ("music", "Name five members (past or present) of {}", "?x wdt:P463 ?s; wdt:P31 wd:Q5.", 3,
+ "members": ("music", "Name five members (past or present) of {}", "{ ?x wdt:P463 ?s } UNION { ?s wdt:P527 ?x } ?x wdt:P31 wd:Q5.", 3,
    "The Rolling Stones|Fleetwood Mac|Pink Floyd|Guns N' Roses|Red Hot Chili Peppers|Metallica|Journey|Deep Purple|Genesis|The Beach Boys|Wu-Tang Clan|BTS|Spice Girls|Slipknot|The Eagles|Black Sabbath|Iron Maiden|Destiny's Child|Backstreet Boys|NSYNC|Monty Python"),
  "books": ("books", "Name five books by {}", "?x wdt:P50 ?s; wdt:P31/wdt:P279* wd:Q7725634.", 5,
    "Stephen King|Agatha Christie|Charles Dickens|Jane Austen|J. R. R. Tolkien|Roald Dahl|Dr. Seuss|Ernest Hemingway|Mark Twain|Leo Tolstoy|Terry Pratchett|Isaac Asimov|Neil Gaiman|Toni Morrison|Kurt Vonnegut|Jules Verne|H. G. Wells|Fyodor Dostoevsky|Virginia Woolf|John Steinbeck|Michael Crichton|Haruki Murakami|Arthur Conan Doyle"),
  "games": ("games", "Name five video games developed by {}", "?x wdt:P178 ?s; wdt:P31/wdt:P279* wd:Q7889.", 8,
    "Nintendo|Valve|Blizzard Entertainment|Naughty Dog|FromSoftware|BioWare|Bethesda Game Studios|Insomniac Games|Bungie|Capcom|Square Enix|Ubisoft Montreal|Rockstar North|Sonic Team|Game Freak|Konami|Epic Games|id Software|Rare"),
- "teams": ("sport", "Name five teams that have played in the {}", "?x wdt:P118 ?s.", 10,
+ "teams": ("sport", "Name five teams that have played in the {}", "{ ?x wdt:P118 ?s } UNION { ?s wdt:P1923 ?x }", 10,
    "National Football League=NFL|National Basketball Association=NBA|Major League Baseball|National Hockey League=NHL|Premier League|La Liga|Serie A|Bundesliga|Major League Soccer|Indian Premier League|Ligue 1"),
  "players": ("sport", "Name five players who have played for {}", "?x wdt:P54 ?s; wdt:P31 wd:Q5.", 25,
    "Manchester United F.C.=Manchester United|Real Madrid CF=Real Madrid|FC Barcelona|Los Angeles Lakers|Chicago Bulls|New York Yankees|Boston Celtics|Dallas Cowboys|New England Patriots|Liverpool F.C.=Liverpool|Juventus FC=Juventus|Golden State Warriors|Arsenal F.C.=Arsenal|AC Milan|FC Bayern Munich=Bayern Munich|Brazil national football team=Brazil's national football team"),
- "borders": ("countries", "Name five countries that border {}", "?x wdt:P47 ?s; wdt:P31 wd:Q6256.", 10,
+ "borders": ("countries", "Name five countries that border {}", "?x wdt:P47 ?s. { ?x wdt:P31 wd:Q6256 } UNION { ?x wdt:P31 wd:Q3624078 }", 10,
    "Brazil|China|Russia|Germany|France|Austria|Tanzania|Democratic Republic of the Congo=the Democratic Republic of the Congo|Turkey|Serbia|Hungary|Zambia|Sudan|Niger|Mali|Iran|Afghanistan|India|Poland|Peru|Saudi Arabia|Ukraine|Switzerland|Colombia|Kazakhstan"),
- "continent": ("countries", "Name five countries in {}", "?x wdt:P31 wd:Q6256; wdt:P30 ?s.", 10,
+ "continent": ("countries", "Name five countries in {}", "?x wdt:P30 ?s. { ?x wdt:P31 wd:Q6256 } UNION { ?x wdt:P31 wd:Q3624078 }", 10,
    "Africa|Europe|Asia|South America|North America|Oceania"),
  "divisions": ("countries", "Name five states, provinces or regions of {}", "?s wdt:P150 ?x.", 5,
    "Canada|Australia|India|Mexico|Brazil|Germany|Japan|Nigeria|Italy|Spain|France|Argentina|South Africa|China|Austria|Switzerland|Netherlands=the Netherlands|Ireland"),
@@ -57,15 +57,15 @@ T = {
    "Frank Lloyd Wright|Zaha Hadid|Antoni Gaudí|Le Corbusier|Frank Gehry|I. M. Pei|Norman Foster|Renzo Piano|Christopher Wren|Ludwig Mies van der Rohe|Oscar Niemeyer|Santiago Calatrava"),
  "ranges": ("mountains", "Name five mountain ranges in {}", "{ ?x wdt:P30 ?s } UNION { ?x wdt:P17 ?s } ?x wdt:P31/wdt:P279* wd:Q46831.", 8,
    "Europe|Asia|North America|South America|Africa|United States=the United States|China|Russia|Canada|Italy|Spain|France"),
- "mountains": ("mountains", "Name five mountains in {}", C.format("Q8502"), 10,
+ "mountains": ("mountains", "Name five mountains in {}", "?x wdt:P17 ?s. { ?x wdt:P31/wdt:P279* wd:Q8502 } UNION { ?x wdt:P31/wdt:P279* wd:Q207326 } UNION { ?x wdt:P31/wdt:P279* wd:Q1595289 }", 10,
    "Switzerland|Nepal|Japan|United States=the United States|Italy|Austria|Canada|Chile|New Zealand|Argentina|France|Pakistan|Tanzania|Greece"),
  "volcanoes": ("mountains", "Name five volcanoes in {}", C.format("Q8072"), 5,
    "Indonesia|Japan|Italy|Iceland|United States=the United States|Chile|Mexico|Ecuador|Philippines=the Philippines|New Zealand|Russia|Guatemala"),
- "rivers": ("water", "Name five rivers in {}", C.format("Q4022"), 15,
+ "rivers": ("water", "Name five rivers in {}", "?x wdt:P17 ?s. { ?x wdt:P31/wdt:P279* wd:Q4022 } UNION { ?x wdt:P31/wdt:P279* wd:Q47521 }", 15,
    "Germany|France|Russia|China|India|Brazil|United States=the United States|Canada|Poland|Italy|Spain|United Kingdom=the United Kingdom|Australia|Ukraine|Austria"),
- "lakes": ("water", "Name five lakes in {}", C.format("Q23397"), 10,
+ "lakes": ("water", "Name five lakes in {}", "?x wdt:P17 ?s. { ?x wdt:P31/wdt:P279* wd:Q23397 } UNION { ?x wdt:P31/wdt:P279* wd:Q131681 }", 10,
    "Canada|Finland|Italy|Switzerland|United States=the United States|Russia|Sweden|Germany|Austria|China|Chile|Argentina|New Zealand"),
- "islands": ("water", "Name five islands of {}", C.format("Q23442"), 10,
+ "islands": ("water", "Name five islands of {}", "?x wdt:P17 ?s. { ?x wdt:P31/wdt:P279* wd:Q23442 } UNION { ?x wdt:P31/wdt:P279* wd:Q33837 }", 10,
    "Greece|Indonesia|Philippines=the Philippines|Japan|Italy|Croatia|Norway|Canada|Denmark|Spain|United Kingdom=the United Kingdom|Estonia|Sweden|France"),
  "parks": ("nature", "Name five national parks in {}", C.format("Q46169"), 5,
    "United States=the United States|Canada|Australia|Kenya|South Africa|New Zealand|Costa Rica|Japan|India|Tanzania|Argentina|Chile|Poland|Spain"),
@@ -75,17 +75,17 @@ T = {
    "Madagascar|Australia|New Zealand|Hawaii|Galápagos Islands=the Galápagos Islands|Japan|Cuba|Sri Lanka|Borneo|Tasmania|South Africa|New Guinea"),
  "breeds": ("animals", "Name five {}", "?x wdt:P31 ?s.", 5,
    "dog breed=dog breeds|cat breed=cat breeds|horse breed=horse breeds|cattle breed=cattle breeds|chicken breed=chicken breeds|sheep breed=sheep breeds"),
- "dishes": ("food", "Name five dishes from {}", "?x wdt:P495 ?s; wdt:P31/wdt:P279* wd:Q746549.", 8,
+ "dishes": ("food", "Name five dishes from {}", "{ ?x wdt:P495 ?s } UNION { ?x wdt:P17 ?s } UNION { ?x wdt:P2341 ?s } UNION { ?x wdt:P1071/wdt:P17 ?s } UNION { ?x wdt:P495/wdt:P17 ?s } ?x (wdt:P31|wdt:P279)/wdt:P279* wd:Q2095.", 8,
    "Italy|Japan|Mexico|India|France|China|Thailand|Spain|Greece|Turkey|South Korea|Germany|Vietnam|Peru|Lebanon|Morocco"),
- "cheeses": ("food", "Name five cheeses from {}", "?x wdt:P495 ?s; wdt:P31/wdt:P279* wd:Q10943.", 5,
+ "cheeses": ("food", "Name five cheeses from {}", "{ ?x wdt:P495 ?s } UNION { ?x wdt:P17 ?s } UNION { ?x wdt:P2341 ?s } UNION { ?x wdt:P1071/wdt:P17 ?s } UNION { ?x wdt:P495/wdt:P17 ?s } ?x (wdt:P31|wdt:P279)/wdt:P279* wd:Q10943.", 5,
    "France|Italy|Switzerland|Netherlands=the Netherlands|United Kingdom=the United Kingdom|Spain|Greece"),
  "paintings": ("art", "Name five paintings by {}", "?x wdt:P170 ?s; wdt:P31 wd:Q3305213.", 8,
    "Vincent van Gogh|Leonardo da Vinci|Claude Monet|Rembrandt|Johannes Vermeer|Pablo Picasso|Salvador Dalí|Frida Kahlo|Edvard Munch|Sandro Botticelli|Caravaggio|Gustav Klimt|Raphael|Edward Hopper|J. M. W. Turner"),
  "office": ("history", "Name five people who have served as {}", "?x wdt:P39 ?s.", 5,
    "President of the United States|Prime Minister of the United Kingdom|Prime Minister of Canada|Chancellor of Germany|President of France|Prime Minister of Australia|Secretary-General of the United Nations|Prime Minister of India|Prime Minister of Japan|pope=pope|Prime Minister of Italy|President of Brazil"),
- "battles": ("history", "Name five battles of {}", "?x wdt:P361 ?s; wdt:P31/wdt:P279* wd:Q178561.", 5,
+ "battles": ("history", "Name five battles of {}", "{ ?x wdt:P361+ ?s } UNION { ?x wdt:P607 ?s } ?x wdt:P31/wdt:P279* wd:Q645883.", 5,
    "American Civil War=the American Civil War|Napoleonic Wars=the Napoleonic Wars|World War I|Hundred Years' War=the Hundred Years' War|American Revolutionary War=the American Revolutionary War|Wars of the Roses=the Wars of the Roses|Seven Years' War=the Seven Years' War|Pacific War=the Pacific War|Vietnam War=the Vietnam War|Korean War=the Korean War"),
- "award": ("awards", "Name five winners of the {}", "?x wdt:P166 ?s.", 20,
+ "award": ("awards", "Name five winners of the {}", "{ ?x wdt:P166 ?s } UNION { ?s wdt:P1346 ?x }", 20,
    "Nobel Prize in Literature|Nobel Peace Prize|Nobel Prize in Physics|Academy Award for Best Actor|Academy Award for Best Actress|Academy Award for Best Director|Ballon d'Or|Grammy Award for Best New Artist|Pulitzer Prize for Fiction|Turing Award|Fields Medal|Academy Award for Best Picture|Palme d'Or|Hugo Award for Best Novel|Nobel Prize in Chemistry"),
  "moons": ("space", "Name five moons of {}", "?x wdt:P397 ?s.", 3,
    "Jupiter|Saturn|Uranus|Neptune"),
@@ -121,6 +121,16 @@ SUBJ_TIER.update({"award:" + a: 2 for a in ["Academy Award for Best Actor", "Aca
 SUBJ_TIER.update({"species:" + a: 3 for a in ["Mustelidae=species of the weasel family", "Lepidoptera=species of butterfly or moth", "Accipitridae=species of hawk, eagle or kite", "Strigiformes=species of owl", "Pinnipedia=species of seal, sea lion or walrus", "Bovidae=species of antelope, cattle or goat", "Psittaciformes=species of parrot", "Anatidae=species of duck, goose or swan"]})
 SUBJ_TIER.update({"breeds:" + a: 3 for a in ["cattle breed=cattle breeds", "chicken breed=chicken breeds", "sheep breed=sheep breeds"]})
 tier = lambda t, s: SUBJ_TIER.get(f"{t}:{s}", TIER.get(t, 2))
+# What a typed answer must satisfy to be accepted (default: the template's own body).
+# People/works only need the relationship, whatever Wikidata calls the thing itself.
+CHECK = {
+ "films_dir": "?x wdt:P57 ?s.", "films_star": "?x wdt:P161 ?s.", "studio": "{ ?x wdt:P272 ?s } UNION { ?x wdt:P750 ?s }",
+ "tv_network": "?x wdt:P449 ?s.", "albums": "?x wdt:P175 ?s.", "songs": "{ ?x wdt:P175 ?s } UNION { ?x wdt:P86 ?s } UNION { ?x wdt:P676 ?s }",
+ "books": "?x wdt:P50 ?s.", "games": "{ ?x wdt:P178 ?s } UNION { ?x wdt:P123 ?s }", "paintings": "?x wdt:P170 ?s.",
+ "players": "?x wdt:P54 ?s.", "members": "{ ?x wdt:P463 ?s } UNION { ?s wdt:P527 ?x }", "battles": "{ ?x wdt:P361+ ?s } UNION { ?x wdt:P607 ?s }",
+ "volcanoes": "?x wdt:P17 ?s. { ?x wdt:P31/wdt:P279* wd:Q8072 } UNION { ?x wdt:P31/wdt:P279* wd:Q8502 }",
+ "endemic": "?x wdt:P183 ?s.", "species": "?x wdt:P171+ ?s.",
+}
 MIN_ANSWERS, PER_CATEGORY, PER_DAY = 8, 2, 20
 
 QUERY = """SELECT ?x ?label ?sl ?human (GROUP_CONCAT(DISTINCT ?alt; separator="\\t") AS ?alts) WHERE {{
@@ -165,6 +175,10 @@ def build(rows):
         for k in a[1:]: last[k.lower()] = last.get(k.lower(), 0) + 1
     return [[a[0]] + [k for k in a[1:] if last[k.lower()] == 1] for a in out], ids
 
+def fwd(body):
+    """Make Wikidata walk class/part-of chains upward from the answer (21s -> 0.3s for live checks)."""
+    return re.sub(r'(wdt:P\d+[*+]\s+(?:wd:Q\d+|\?s))\s*([.}])', r'\1 . hint:Prior hint:gearing "forward" \2', body)
+
 def fetch(t, s):
     """One prompt: (answer count, category, fame, [question, answers, subject id, check body, answer ids], key) or None."""
     v = T[t]; cat, text, body, minsl, lit = v[0], v[1], v[2], v[3], len(v) > 5
@@ -180,7 +194,7 @@ def fetch(t, s):
     print(f"  {len(ans):3d}  {text.format(disp)}", flush=True)
     if len(ans) < MIN_ANSWERS: return None
     fame = sorted(int(r["sl"]["value"]) for r in rows[:10])[len(rows[:10]) // 2]  # median fame of top answers
-    chk = body.replace("{lit}", search.lower() if "LCASE" in body else search).split(" FILTER")[0]
+    chk = fwd(CHECK.get(t, body)).replace("{lit}", search.lower() if "LCASE" in body else search).split(" FILTER")[0]
     return (len(ans), cat, fame, [text.format(disp), "|".join("/".join(a) for a in ans), qid, chk, ",".join(ids)], f"{t}:{s}")
 
 def pick(pool, n, cats, cc, tused):
