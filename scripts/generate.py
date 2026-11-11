@@ -49,7 +49,7 @@ T = {
    "Africa|Europe|Asia|South America|North America|Oceania"),
  "divisions": ("countries", "Name five states, provinces or regions of {}", "?s wdt:P150 ?x.", 5,
    "Canada|Australia|India|Mexico|Brazil|Germany|Japan|Nigeria|Italy|Spain|France|Argentina|South Africa|China|Austria|Switzerland|Netherlands=the Netherlands|Ireland"),
- "cities": ("cities", "Name five cities in {}", C.format("Q515"), 40,
+ "cities": ("cities", "Name five cities in {}", "?x wdt:P17 ?s. { ?x wdt:P31/wdt:P279* wd:Q515 } UNION { ?x wdt:P31/wdt:P279* wd:Q486972 } UNION { ?x wdt:P31/wdt:P279* wd:Q15284 }", 40,
    "Italy|Japan|Germany|Brazil|Spain|France|China|India|Mexico|Canada|Australia|Turkey|Egypt|Poland|Russia|United Kingdom=the United Kingdom|Argentina|Indonesia|Iran|Pakistan|United States=the United States"),
  "heritage": ("landmarks", "Name five UNESCO World Heritage Sites in {}", "?x wdt:P17 ?s; wdt:P1435 wd:Q9259.", 10,
    "Italy|China|Spain|France|Germany|India|Mexico|United Kingdom=the United Kingdom|Peru|Egypt|Japan|Greece|Turkey|Iran|Brazil|Australia|United States=the United States"),
