@@ -91,6 +91,7 @@ ol.slots{list-style:none;padding:0;display:grid;gap:6px}
 .rules{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 6px}
 .rules div{border:1px solid var(--line-dim);border-radius:3px;padding:8px 4px}
 .rules b{display:block;font:400 28px/1 var(--pixel);color:var(--gold);font-weight:400}
+.credit{margin-top:8px;text-align:center;font-size:9px;letter-spacing:.12em;color:#3f5670}
 .foot{display:flex;justify-content:space-between;margin-top:14px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#56708d}
 dialog{margin:auto;border:2px solid var(--line);border-radius:4px;padding:26px 22px 20px;max-width:400px;width:calc(100% - 32px);background:#0a1628;color:var(--ink);text-align:center;box-shadow:0 0 40px rgba(95,211,255,.25)}
 dialog::backdrop{background:rgba(3,8,16,.7)}
@@ -138,6 +139,7 @@ dialog .row{display:grid;gap:8px;margin-top:16px}
     </div>
   </section>
   <div class="foot"><span id="crossing"></span><span>100 pts per answer</span></div>
+  <p class="credit">Sounds: waves by Luftrum (CC BY 3.0) · gulls by Sonothèque ADVL (CC0) · via Wikimedia Commons</p>
 </main>
 
 <dialog id="modal"><div id="modalBody"></div></dialog>
@@ -404,14 +406,31 @@ const SFX=(()=>{let ctx,on=true;try{on=localStorage.getItem("titanic:sound")!=="
     for(let i=0;i<x.length;i++)x[i]=(Math.random()*2-1)*(1-i/x.length);const n=c.createBufferSource(),fl=c.createBiquadFilter(),g=c.createGain();
     fl.type="lowpass";fl.frequency.value=700;g.gain.value=v;n.buffer=b;n.connect(fl).connect(g).connect(c.destination);n.start()};
   const seq=(ns,type="square",len=.14,gap=.09)=>ns.forEach((f,i)=>tone(f,len,type,.07,0,i*gap));
-  return{get on(){return on},toggle(){on=!on;try{localStorage.setItem("titanic:sound",on?"on":"off")}catch(e){}if(on)tone(880,.08);return on},
+  return{ctx:()=>ac(),get on(){return on},toggle(){on=!on;try{localStorage.setItem("titanic:sound",on?"on":"off")}catch(e){}if(on)tone(880,.08);return on},
     ok:()=>{tone(660,.07);tone(990,.12,"square",.07,0,.06)},bad:()=>tone(170,.22,"sawtooth",.05,-70),
     tick:()=>tone(1250,.035,"square",.035),click:()=>tone(1900,.012,"square",.012),
     start:()=>{tone(98,1,"sawtooth",.06,-6);tone(147,1,"sawtooth",.04,-8)},
     clear:()=>seq([523,659,784,1047]),win:()=>seq([523,659,784,1047,784,1047,1319],"square",.18,.12),
     giveup:()=>seq([392,330,262],"triangle",.2,.13),crash:()=>{noise(1.4,.4);tone(90,1.6,"sawtooth",.09,-55)}}})();
 function sndLabel(){const b=$("snd");b.textContent=SFX.on?"♪ On":"♪ Off";b.setAttribute("aria-pressed",SFX.on)}
-sndLabel();$("snd").onclick=()=>{SFX.toggle();sndLabel()};
+sndLabel();$("snd").onclick=()=>{SFX.toggle();sndLabel();AMB.sync()};
+// ---- Ambience: waves, wind, seagulls and a distant sea bell (starts on your first click/key, follows ♪ On/Off) ----
+// Waves: "Oceanwavescrushing" by Luftrum (CC BY 3.0). Gulls: "European Herring Gull" by Sonothèque ADVL (CC0). Both via Wikimedia Commons.
+const AMB=(()=>{let c,master,started=false;const L=u=>fetch(u).then(r=>r.arrayBuffer()).then(b=>c.decodeAudioData(b));
+  function start(){if(started||!SFX.on)return;started=true;c=SFX.ctx();master=c.createGain();master.gain.setValueAtTime(0,c.currentTime);master.gain.linearRampToValueAtTime(1,c.currentTime+3);master.connect(c.destination);
+    L("waves.wav").then(b=>{const s=c.createBufferSource(),g=c.createGain();s.buffer=b;s.loop=true;g.gain.value=.14;s.connect(g).connect(master);s.start()}).catch(()=>{});
+    const nb=c.createBuffer(1,c.sampleRate*4,c.sampleRate),x=nb.getChannelData(0);for(let i=0;i<x.length;i++)x[i]=Math.random()*2-1;
+    const ns=c.createBufferSource(),lp=c.createBiquadFilter(),wg=c.createGain(),lfo=c.createOscillator(),lg=c.createGain();ns.buffer=nb;ns.loop=true;lp.type="lowpass";lp.frequency.value=380;
+    wg.gain.value=.03;lfo.frequency.value=.06;lg.gain.value=.022;lfo.connect(lg).connect(wg.gain);ns.connect(lp).connect(wg).connect(master);ns.start();lfo.start();
+    L("gulls.wav").then(b=>{const gull=()=>{if(c.state==="running"){const s=c.createBufferSource(),g=c.createGain();s.buffer=b;s.playbackRate.value=.9+Math.random()*.2;g.gain.value=.05+Math.random()*.04;
+      if(c.createStereoPanner){const p=c.createStereoPanner();p.pan.value=Math.random()*1.6-.8;s.connect(g).connect(p).connect(master)}else s.connect(g).connect(master);s.start()}setTimeout(gull,15000+Math.random()*18000)};setTimeout(gull,5000)}).catch(()=>{});
+    const bell=()=>{if(c.state==="running"){const t=c.currentTime,f=c.createBiquadFilter();f.type="lowpass";f.frequency.value=1600;f.connect(master);
+      [[1,1],[2.76,.45],[5.4,.2],[8.9,.08]].forEach(([m,a])=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=330*m;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.03*a,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+4.5);o.connect(g).connect(f);o.start(t);o.stop(t+4.6)})}
+      setTimeout(bell,20000+Math.random()*25000)};setTimeout(bell,10000)}
+  return{start,sync(){if(!master){if(SFX.on)start();return}master.gain.setTargetAtTime(SFX.on?1:0,c.currentTime,.3)}}})();
+["pointerdown","keydown"].forEach(e=>addEventListener(e,()=>AMB.start(),{once:true}));
+document.addEventListener("visibilitychange",()=>{if(!SFX.on)return;const x=SFX.ctx();document.hidden?x.suspend():x.resume()});
+
 $("answer").addEventListener("keydown",e=>{if(e.key.length===1)SFX.click()});
 
 $("archBtn").onclick=()=>{if(!run)openArchive()};
