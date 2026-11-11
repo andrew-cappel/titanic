@@ -14,44 +14,83 @@ OUT = ROOT / "prompts"
 API = "https://query.wikidata.org/sparql"
 UA = "TitanicDailyPrompts/1.0 (daily trivia game prompt generator)"
 
-# body uses ?x (answer) and ?s (subject, found by exact English label, most-linked match wins)
+# key: (category, prompt, body, min sitelinks, subjects). Body uses ?x (answer) and ?s (subject).
+# Subjects are "Wikidata search text" or "search text=how it reads in the prompt".
+# Each difficulty gets 5 different categories; no category more than 3 times a day.
+C = "?x wdt:P17 ?s; wdt:P31/wdt:P279* wd:{}."   # things of a type in a country
 T = {
- "films_dir": ("Name five films directed by {}", "?x wdt:P57 ?s; wdt:P31/wdt:P279* wd:Q11424.", 5,
-   "Christopher Nolan|Steven Spielberg|Martin Scorsese|Quentin Tarantino|Stanley Kubrick|Alfred Hitchcock|Ridley Scott|Tim Burton|James Cameron|Wes Anderson|David Fincher|Peter Jackson|Hayao Miyazaki|Spike Lee|Denis Villeneuve|Clint Eastwood|Francis Ford Coppola|Woody Allen|Guillermo del Toro|Sofia Coppola|Greta Gerwig|Ron Howard|Robert Zemeckis|Michael Bay|John Carpenter"),
- "films_star": ("Name five films starring {}", "?x wdt:P161 ?s; wdt:P31/wdt:P279* wd:Q11424.", 15,
-   "Tom Hanks|Meryl Streep|Leonardo DiCaprio|Denzel Washington|Scarlett Johansson|Brad Pitt|Julia Roberts|Keanu Reeves|Tom Cruise|Nicolas Cage|Will Smith|Sandra Bullock|Harrison Ford|Morgan Freeman|Robin Williams|Jim Carrey|Johnny Depp|Cate Blanchett|Samuel L. Jackson|Natalie Portman|Adam Sandler|Dwayne Johnson|Emma Stone|Matt Damon|Anthony Hopkins"),
- "albums": ("Name five albums by {}", "?x wdt:P175 ?s; wdt:P31/wdt:P279* wd:Q482994.", 3,
+ "films_dir": ("film", "Name five films directed by {}", "?x wdt:P57 ?s; wdt:P31/wdt:P279* wd:Q11424.", 5,
+   "Christopher Nolan|Steven Spielberg|Martin Scorsese|Quentin Tarantino|Stanley Kubrick|Alfred Hitchcock|Ridley Scott|Tim Burton|James Cameron|Wes Anderson|David Fincher|Peter Jackson|Hayao Miyazaki|Spike Lee|Denis Villeneuve|Clint Eastwood|Francis Ford Coppola|Woody Allen|Guillermo del Toro|Ron Howard|Robert Zemeckis|Michael Bay|John Carpenter"),
+ "films_star": ("film", "Name five films starring {}", "?x wdt:P161 ?s; wdt:P31/wdt:P279* wd:Q11424.", 15,
+   "Tom Hanks|Meryl Streep|Leonardo DiCaprio|Denzel Washington|Scarlett Johansson|Brad Pitt|Julia Roberts|Keanu Reeves|Tom Cruise|Nicolas Cage|Will Smith|Sandra Bullock|Harrison Ford|Morgan Freeman|Robin Williams|Jim Carrey|Johnny Depp|Cate Blanchett|Samuel L. Jackson|Natalie Portman|Adam Sandler|Dwayne Johnson|Matt Damon|Anthony Hopkins"),
+ "studio": ("film", "Name five films produced by {}", "?x wdt:P272 ?s; wdt:P31/wdt:P279* wd:Q11424.", 10,
+   "Pixar Animation Studios=Pixar|Walt Disney Animation Studios|DreamWorks Animation|Studio Ghibli|Marvel Studios|Lucasfilm|Blumhouse Productions|A24|Illumination|Aardman Animations|Legendary Entertainment|Amblin Entertainment"),
+ "tv_network": ("tv", "Name five TV series that aired on {}", "?x wdt:P449 ?s; wdt:P31/wdt:P279* wd:Q5398426.", 20,
+   "HBO|NBC|CBS|American Broadcasting Company=ABC|Netflix|BBC One|Fox Broadcasting Company=Fox|AMC|Disney Channel|Cartoon Network|Nickelodeon|MTV|Comedy Central|FX|Showtime|The CW|Adult Swim|Prime Video|Hulu|Channel 4"),
+ "characters": ("tv", "Name five characters from {}", "?x wdt:P1441 ?s.", 3,
+   "The Simpsons|Friends|Game of Thrones|Breaking Bad|The Office|The Lord of the Rings|Stranger Things|Seinfeld|Family Guy|SpongeBob SquarePants|Twin Peaks|The Sopranos|Doctor Who|Star Trek: The Next Generation|One Piece|Naruto|Mad Men|Lost|Buffy the Vampire Slayer|South Park|Pride and Prejudice|Hamlet"),
+ "albums": ("music", "Name five albums by {}", "?x wdt:P175 ?s; wdt:P31/wdt:P279* wd:Q482994.", 3,
    "Taylor Swift|The Beatles|Beyoncé|Radiohead|David Bowie|Madonna|Pink Floyd|Kanye West|Drake|Led Zeppelin|Bob Dylan|Prince|Metallica|Coldplay|Eminem|Kendrick Lamar|Fleetwood Mac|The Rolling Stones|Elton John|Bruce Springsteen|Daft Punk|Green Day|Arctic Monkeys"),
- "songs": ("Name five songs by {}", "?x wdt:P175 ?s; wdt:P31/wdt:P279* wd:Q7366.", 4,
-   "Michael Jackson|ABBA|Elvis Presley|Taylor Swift|Rihanna|Lady Gaga|Bruce Springsteen|Elton John|Dolly Parton|Bon Jovi|Nirvana|The Beatles|Queen|Whitney Houston|Britney Spears|Ed Sheeran|Bob Marley|Johnny Cash|The Beach Boys|Stevie Wonder"),
- "books": ("Name five books by {}", "?x wdt:P50 ?s; wdt:P31/wdt:P279* wd:Q7725634.", 5,
+ "songs": ("music", "Name five songs by {}", "?x wdt:P175 ?s; wdt:P31/wdt:P279* wd:Q7366.", 4,
+   "Michael Jackson|ABBA|Elvis Presley|Taylor Swift|Rihanna|Lady Gaga|Bruce Springsteen|Elton John|Dolly Parton|Bon Jovi|Nirvana|The Beatles|Queen band=Queen|Whitney Houston|Britney Spears|Ed Sheeran|Bob Marley|Johnny Cash|The Beach Boys|Stevie Wonder"),
+ "members": ("music", "Name five members (past or present) of {}", "?x wdt:P463 ?s; wdt:P31 wd:Q5.", 3,
+   "The Rolling Stones|Fleetwood Mac|Pink Floyd|Guns N' Roses|Red Hot Chili Peppers|Metallica|Journey|Deep Purple|Genesis|The Beach Boys|Wu-Tang Clan|BTS|Spice Girls|Slipknot|The Eagles|Black Sabbath|Iron Maiden|Destiny's Child|Backstreet Boys|NSYNC|Monty Python"),
+ "books": ("books", "Name five books by {}", "?x wdt:P50 ?s; wdt:P31/wdt:P279* wd:Q7725634.", 5,
    "Stephen King|Agatha Christie|Charles Dickens|Jane Austen|J. R. R. Tolkien|Roald Dahl|Dr. Seuss|Ernest Hemingway|Mark Twain|Leo Tolstoy|Terry Pratchett|Isaac Asimov|Neil Gaiman|Toni Morrison|Kurt Vonnegut|Jules Verne|H. G. Wells|Fyodor Dostoevsky|Virginia Woolf|John Steinbeck|Michael Crichton|Haruki Murakami|Arthur Conan Doyle"),
- "borders": ("Name five countries that border {}", "?x wdt:P47 ?s; wdt:P31 wd:Q6256.", 10,
-   "Brazil|China|Russia|Germany|France|Austria|Tanzania|Democratic Republic of the Congo|Turkey|Serbia|Hungary|Zambia|Sudan|Niger|Mali|Iran|Afghanistan|India|Poland|Peru|Saudi Arabia|Ukraine|Switzerland|Colombia|Kazakhstan"),
- "games": ("Name five video games developed by {}", "?x wdt:P178 ?s; wdt:P31/wdt:P279* wd:Q7889.", 8,
-   "Nintendo|Valve|Blizzard Entertainment|Naughty Dog|FromSoftware|BioWare|Bethesda Game Studios|Insomniac Games|Bungie|Capcom|Square Enix|Ubisoft Montreal|Rockstar North|Sonic Team|Game Freak|Konami|Epic Games|id Software|Retro Studios|Rare"),
- "award": ("Name five winners of the {}", "?x wdt:P166 ?s.", 20,
-   "Nobel Prize in Literature|Nobel Peace Prize|Nobel Prize in Physics|Academy Award for Best Actor|Academy Award for Best Actress|Academy Award for Best Director|Ballon d'Or|Grammy Award for Best New Artist|Pulitzer Prize for Fiction|Turing Award|Fields Medal|Academy Award for Best Picture|Palme d'Or|Hugo Award for Best Novel|Presidential Medal of Freedom|Nobel Prize in Chemistry|Academy Award for Best Supporting Actress|Academy Award for Best Animated Feature"),
- "members": ("Name five members (past or present) of {}", "?x wdt:P463 ?s; wdt:P31 wd:Q5.", 3,
-   "The Rolling Stones|Fleetwood Mac|Pink Floyd|Guns N' Roses|Red Hot Chili Peppers|Metallica|Journey|Deep Purple|Genesis|The Beach Boys|Wu-Tang Clan|BTS|Spice Girls|Slipknot|Fugees|The Eagles|Black Sabbath|Iron Maiden|Destiny's Child|Backstreet Boys|NSYNC|Monty Python|The Avengers"),
- "divisions": ("Name five states, provinces or regions of {}", "?s wdt:P150 ?x.", 5,
-   "Canada|Australia|India|Mexico|Brazil|Germany|Japan|Nigeria|Italy|Spain|France|Argentina|South Africa|China|Austria|Switzerland|Netherlands|Ireland"),
- "teams": ("Name five teams that have played in the {}", "?x wdt:P118 ?s.", 10,
-   "National Football League|National Basketball Association|Major League Baseball|National Hockey League|Premier League|La Liga|Serie A|Bundesliga|Major League Soccer|Indian Premier League|Ligue 1|Women's National Basketball Association"),
- "characters": ("Name five characters from {}", "?x wdt:P1441 ?s.", 3,
-   "The Simpsons|Friends|Game of Thrones|Breaking Bad|The Office|The Lord of the Rings|Stranger Things|Seinfeld|Family Guy|Pride and Prejudice|Les Misérables|Hamlet|SpongeBob SquarePants|Twin Peaks|The Sopranos|Doctor Who|Star Trek: The Next Generation|One Piece|Naruto|Mad Men|Lost|Buffy the Vampire Slayer|South Park"),
- "endemic": ("Name five species found only in {}", "?x wdt:P183 ?s; wdt:P225 ?tn. FILTER(LCASE(?label) != LCASE(?tn))", 8,
-   "Madagascar|Australia|New Zealand|Hawaii|Galápagos Islands|Japan|Cuba|Sri Lanka|Borneo|Tasmania|South Africa|New Guinea"),
- "cities": ("Name five cities in {}", "?x wdt:P17 ?s; wdt:P31/wdt:P279* wd:Q515.", 40,
-   "Italy|Japan|Germany|Brazil|Spain|France|China|India|Mexico|Canada|Australia|Turkey|Egypt|Poland|Russia|United Kingdom|Argentina|Indonesia|Iran|Pakistan"),
- "tv_network": ("Name five TV series that aired on {}", "?x wdt:P449 ?s; wdt:P31/wdt:P279* wd:Q5398426.", 20,
-   "HBO|NBC|CBS|American Broadcasting Company|Netflix|BBC One|Fox Broadcasting Company|AMC|Disney Channel|Cartoon Network|Nickelodeon|MTV|Comedy Central|FX|Showtime|The CW|Adult Swim|Prime Video|Hulu|Channel 4"),
- "studio": ("Name five films produced by {}", "?x wdt:P272 ?s; wdt:P31/wdt:P279* wd:Q11424.", 10,
-   "Pixar|Walt Disney Animation Studios|DreamWorks Animation|Studio Ghibli|Marvel Studios|Lucasfilm|Blumhouse Productions|A24|Illumination|Aardman Animations|Legendary Entertainment|Amblin Entertainment|Working Title Films|Pixar Animation Studios"),
- "players": ("Name five players who have played for {}", "?x wdt:P54 ?s; wdt:P31 wd:Q5.", 25,
-   "Manchester United F.C.|Real Madrid CF|FC Barcelona|Los Angeles Lakers|Chicago Bulls|New York Yankees|Boston Celtics|Dallas Cowboys|New England Patriots|Liverpool F.C.|Juventus FC|Golden State Warriors|Arsenal F.C.|AC Milan|FC Bayern Munich|Paris Saint-Germain F.C.|Brazil national football team|Argentina national football team"),
+ "games": ("games", "Name five video games developed by {}", "?x wdt:P178 ?s; wdt:P31/wdt:P279* wd:Q7889.", 8,
+   "Nintendo|Valve|Blizzard Entertainment|Naughty Dog|FromSoftware|BioWare|Bethesda Game Studios|Insomniac Games|Bungie|Capcom|Square Enix|Ubisoft Montreal|Rockstar North|Sonic Team|Game Freak|Konami|Epic Games|id Software|Rare"),
+ "teams": ("sport", "Name five teams that have played in the {}", "?x wdt:P118 ?s.", 10,
+   "National Football League=NFL|National Basketball Association=NBA|Major League Baseball|National Hockey League=NHL|Premier League|La Liga|Serie A|Bundesliga|Major League Soccer|Indian Premier League|Ligue 1"),
+ "players": ("sport", "Name five players who have played for {}", "?x wdt:P54 ?s; wdt:P31 wd:Q5.", 25,
+   "Manchester United F.C.=Manchester United|Real Madrid CF=Real Madrid|FC Barcelona|Los Angeles Lakers|Chicago Bulls|New York Yankees|Boston Celtics|Dallas Cowboys|New England Patriots|Liverpool F.C.=Liverpool|Juventus FC=Juventus|Golden State Warriors|Arsenal F.C.=Arsenal|AC Milan|FC Bayern Munich=Bayern Munich|Brazil national football team=Brazil's national football team"),
+ "borders": ("countries", "Name five countries that border {}", "?x wdt:P47 ?s; wdt:P31 wd:Q6256.", 10,
+   "Brazil|China|Russia|Germany|France|Austria|Tanzania|Democratic Republic of the Congo=the Democratic Republic of the Congo|Turkey|Serbia|Hungary|Zambia|Sudan|Niger|Mali|Iran|Afghanistan|India|Poland|Peru|Saudi Arabia|Ukraine|Switzerland|Colombia|Kazakhstan"),
+ "continent": ("countries", "Name five countries in {}", "?x wdt:P31 wd:Q6256; wdt:P30 ?s.", 10,
+   "Africa|Europe|Asia|South America|North America|Oceania"),
+ "divisions": ("countries", "Name five states, provinces or regions of {}", "?s wdt:P150 ?x.", 5,
+   "Canada|Australia|India|Mexico|Brazil|Germany|Japan|Nigeria|Italy|Spain|France|Argentina|South Africa|China|Austria|Switzerland|Netherlands=the Netherlands|Ireland"),
+ "cities": ("cities", "Name five cities in {}", C.format("Q515"), 40,
+   "Italy|Japan|Germany|Brazil|Spain|France|China|India|Mexico|Canada|Australia|Turkey|Egypt|Poland|Russia|United Kingdom=the United Kingdom|Argentina|Indonesia|Iran|Pakistan|United States=the United States"),
+ "heritage": ("landmarks", "Name five UNESCO World Heritage Sites in {}", "?x wdt:P17 ?s; wdt:P1435 wd:Q9259.", 10,
+   "Italy|China|Spain|France|Germany|India|Mexico|United Kingdom=the United Kingdom|Peru|Egypt|Japan|Greece|Turkey|Iran|Brazil|Australia|United States=the United States"),
+ "buildings": ("landmarks", "Name five buildings designed by {}", "?x wdt:P84 ?s.", 5,
+   "Frank Lloyd Wright|Zaha Hadid|Antoni Gaudí|Le Corbusier|Frank Gehry|I. M. Pei|Norman Foster|Renzo Piano|Christopher Wren|Ludwig Mies van der Rohe|Oscar Niemeyer|Santiago Calatrava"),
+ "ranges": ("mountains", "Name five mountain ranges in {}", "{ ?x wdt:P30 ?s } UNION { ?x wdt:P17 ?s } ?x wdt:P31/wdt:P279* wd:Q46831.", 8,
+   "Europe|Asia|North America|South America|Africa|United States=the United States|China|Russia|Canada|Italy|Spain|France"),
+ "mountains": ("mountains", "Name five mountains in {}", C.format("Q8502"), 10,
+   "Switzerland|Nepal|Japan|United States=the United States|Italy|Austria|Canada|Chile|New Zealand|Argentina|France|Pakistan|Tanzania|Greece"),
+ "volcanoes": ("mountains", "Name five volcanoes in {}", C.format("Q8072"), 5,
+   "Indonesia|Japan|Italy|Iceland|United States=the United States|Chile|Mexico|Ecuador|Philippines=the Philippines|New Zealand|Russia|Guatemala"),
+ "rivers": ("water", "Name five rivers in {}", C.format("Q4022"), 15,
+   "Germany|France|Russia|China|India|Brazil|United States=the United States|Canada|Poland|Italy|Spain|United Kingdom=the United Kingdom|Australia|Ukraine|Austria"),
+ "lakes": ("water", "Name five lakes in {}", C.format("Q23397"), 10,
+   "Canada|Finland|Italy|Switzerland|United States=the United States|Russia|Sweden|Germany|Austria|China|Chile|Argentina|New Zealand"),
+ "islands": ("water", "Name five islands of {}", C.format("Q23442"), 10,
+   "Greece|Indonesia|Philippines=the Philippines|Japan|Italy|Croatia|Norway|Canada|Denmark|Spain|United Kingdom=the United Kingdom|Estonia|Sweden|France"),
+ "parks": ("nature", "Name five national parks in {}", C.format("Q46169"), 5,
+   "United States=the United States|Canada|Australia|Kenya|South Africa|New Zealand|Costa Rica|Japan|India|Tanzania|Argentina|Chile|Poland|Spain"),
+ "species": ("animals", "Name five {}", "?x wdt:P171+ ?s; wdt:P105 wd:Q7432; wdt:P225 ?tn. FILTER(LCASE(?label) != LCASE(?tn))", 15,
+   "Felidae=species of wild cat|Canidae=wild species of the dog family|Ursidae=species of bear|Cetacea=species of whale or dolphin|Accipitridae=species of hawk, eagle or kite|Psittaciformes=species of parrot|Testudines=species of turtle or tortoise|Serpentes=species of snake|Primates=species of primate|Selachimorpha=species of shark|Anatidae=species of duck, goose or swan|Strigiformes=species of owl|Pinnipedia=species of seal, sea lion or walrus|Cervidae=species of deer|Bovidae=species of antelope, cattle or goat|Crocodilia=species of crocodile or alligator|Spheniscidae=species of penguin|Mustelidae=species of the weasel family|Equidae=species of horse, zebra or donkey|Lepidoptera=species of butterfly or moth"),
+ "endemic": ("animals", "Name five species found only in {}", "?x wdt:P183 ?s; wdt:P225 ?tn. FILTER(LCASE(?label) != LCASE(?tn))", 8,
+   "Madagascar|Australia|New Zealand|Hawaii|Galápagos Islands=the Galápagos Islands|Japan|Cuba|Sri Lanka|Borneo|Tasmania|South Africa|New Guinea"),
+ "breeds": ("animals", "Name five {}", "?x wdt:P31 ?s.", 5,
+   "dog breed=dog breeds|cat breed=cat breeds|horse breed=horse breeds|cattle breed=cattle breeds|chicken breed=chicken breeds|sheep breed=sheep breeds"),
+ "dishes": ("food", "Name five dishes from {}", "?x wdt:P495 ?s; wdt:P31/wdt:P279* wd:Q746549.", 8,
+   "Italy|Japan|Mexico|India|France|China|Thailand|Spain|Greece|Turkey|South Korea|Germany|Vietnam|Peru|Lebanon|Morocco"),
+ "cheeses": ("food", "Name five cheeses from {}", "?x wdt:P495 ?s; wdt:P31/wdt:P279* wd:Q10943.", 5,
+   "France|Italy|Switzerland|Netherlands=the Netherlands|United Kingdom=the United Kingdom|Spain|Greece"),
+ "paintings": ("art", "Name five paintings by {}", "?x wdt:P170 ?s; wdt:P31 wd:Q3305213.", 8,
+   "Vincent van Gogh|Leonardo da Vinci|Claude Monet|Rembrandt|Johannes Vermeer|Pablo Picasso|Salvador Dalí|Frida Kahlo|Edvard Munch|Sandro Botticelli|Caravaggio|Gustav Klimt|Raphael|Edward Hopper|J. M. W. Turner"),
+ "office": ("history", "Name five people who have served as {}", "?x wdt:P39 ?s.", 5,
+   "President of the United States|Prime Minister of the United Kingdom|Prime Minister of Canada|Chancellor of Germany|President of France|Prime Minister of Australia|Secretary-General of the United Nations|Prime Minister of India|Prime Minister of Japan|pope=pope|Prime Minister of Italy|President of Brazil"),
+ "battles": ("history", "Name five battles of {}", "?x wdt:P361 ?s; wdt:P31/wdt:P279* wd:Q178561.", 5,
+   "American Civil War=the American Civil War|Napoleonic Wars=the Napoleonic Wars|World War I|Hundred Years' War=the Hundred Years' War|American Revolutionary War=the American Revolutionary War|Wars of the Roses=the Wars of the Roses|Seven Years' War=the Seven Years' War|Pacific War=the Pacific War|Vietnam War=the Vietnam War|Korean War=the Korean War"),
+ "award": ("awards", "Name five winners of the {}", "?x wdt:P166 ?s.", 20,
+   "Nobel Prize in Literature|Nobel Peace Prize|Nobel Prize in Physics|Academy Award for Best Actor|Academy Award for Best Actress|Academy Award for Best Director|Ballon d'Or|Grammy Award for Best New Artist|Pulitzer Prize for Fiction|Turing Award|Fields Medal|Academy Award for Best Picture|Palme d'Or|Hugo Award for Best Novel|Nobel Prize in Chemistry"),
+ "moons": ("space", "Name five moons of {}", "?x wdt:P397 ?s.", 3,
+   "Jupiter|Saturn|Uranus|Neptune"),
 }
-MIN_ANSWERS, PER_TEMPLATE, PER_DAY = 8, 2, 20
+MIN_ANSWERS, PER_CATEGORY, PER_DAY = 8, 3, 20
 
 def run(q):
     req = urllib.request.Request(API + "?" + urllib.parse.urlencode({"query": q, "format": "json"}), headers={"User-Agent": UA})
@@ -91,26 +130,45 @@ def build(rows):
         for k in a[1:]: last[k.lower()] = last.get(k.lower(), 0) + 1
     return [[a[0]] + [k for k in a[1:] if last[k.lower()] == 1] for a in out], ids
 
+def arrange(got, rng):
+    """Easiest (most answers) first, then swap prompts until no difficulty repeats a topic."""
+    got = sorted(got, key=lambda g: -g[0]); modes = [got[i*5:i*5+5] for i in range(4)]
+    bad = lambda: sum(len(m) - len({x[1] for x in m}) for m in modes)
+    for _ in range(5000):
+        if not bad(): break
+        a = rng.randrange(3); b = a + 1 if rng.random() < .7 else rng.choice([k for k in range(4) if k != a])
+        i, j, before = rng.randrange(5), rng.randrange(5), bad()
+        modes[a][i], modes[b][j] = modes[b][j], modes[a][i]
+        if bad() > before: modes[a][i], modes[b][j] = modes[b][j], modes[a][i]
+    for m in modes: rng.shuffle(m)
+    return modes
+
 def make(day, used):
     rng = random.Random("titanic" + day)
-    pool = [(t, s) for t, v in T.items() for s in v[3].split("|") if f"{t}:{s}" not in used]
+    pool = [(t, s) for t, v in T.items() for s in v[4].split("|") if f"{t}:{s}" not in used]
     rng.shuffle(pool)
-    got, count = [], {}
-    for t, s in pool:
-        if len(got) == PER_DAY: break
-        if count.get(t, 0) >= PER_TEMPLATE: continue
-        text, body, minsl, _ = T[t]
-        try: qid, rows = sparql(body, s, minsl)
-        except Exception as e: print("  skip", t, s, e); time.sleep(3); continue
-        ans, ids = build(rows); time.sleep(1)
-        print(f"  {len(ans):3d}  {text.format(s)}", flush=True)
-        if len(ans) < MIN_ANSWERS: continue
-        got.append((len(ans), [text.format(s), "|".join("/".join(a) for a in ans), qid, body.split(" FILTER")[0], ",".join(ids)], f"{t}:{s}"))
-        count[t] = count.get(t, 0) + 1
+    cats = sorted({v[0] for v in T.values()}); rng.shuffle(cats)
+    bycat = {c: [p for p in pool if T[p[0]][0] == c] for c in cats}
+    got, cc, tused = [], {}, set()
+    while len(got) < PER_DAY and any(bycat[c] and cc.get(c, 0) < PER_CATEGORY for c in cats):
+        for c in cats:  # round-robin over topics so the day is spread across many of them
+            if len(got) >= PER_DAY or cc.get(c, 0) >= PER_CATEGORY: continue
+            while bycat[c]:
+                t, s = bycat[c].pop()
+                if t in tused: continue
+                cat, text, body, minsl, _ = T[t]
+                search, disp = (s.split("=") + [s])[:2]
+                try: qid, rows = sparql(body, search, minsl)
+                except Exception as e: print("  skip", t, s, e, flush=True); time.sleep(3); continue
+                ans, ids = build(rows); time.sleep(1)
+                print(f"  {len(ans):3d}  {text.format(disp)}", flush=True)
+                if len(ans) < MIN_ANSWERS: continue
+                got.append((len(ans), cat, [text.format(disp), "|".join("/".join(a) for a in ans), qid, body.split(" FILTER")[0], ",".join(ids)], f"{t}:{s}"))
+                cc[c] = cc.get(c, 0) + 1; tused.add(t); break
     if len(got) < PER_DAY: raise SystemExit(f"only {len(got)} prompts for {day}")
-    got.sort(key=lambda g: -g[0])  # most answers = easiest
-    used.extend(g[2] for g in got)
-    return {"date": day, "source": "Wikidata (CC0)", "modes": [[g[1] for g in got[i*5:i*5+5]] for i in range(4)]}
+    used.extend(g[3] for g in got)
+    modes = arrange(got, rng)
+    return {"date": day, "source": "Wikidata (CC0)", "modes": [[g[2] for g in m] for m in modes]}
 
 def main():
     OUT.mkdir(exist_ok=True)
@@ -125,7 +183,7 @@ def main():
         f.write_text(json.dumps(make(day, used), ensure_ascii=False, separators=(",", ":")))
         uf.write_text(json.dumps(used))
     # once every pairing is used, start over
-    if len(used) > sum(len(v[3].split("|")) for v in T.values()) - PER_DAY * 2: uf.write_text("[]")
+    if len(used) > sum(len(v[4].split("|")) for v in T.values()) - PER_DAY * 2: uf.write_text("[]")
 
 if __name__ == "__main__":
     main()
