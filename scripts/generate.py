@@ -207,8 +207,14 @@ def make(day, used):
     cc, tused, modes = {}, set(), []
     for L in (1, 2, 3, 4):   # each difficulty draws only from its own level, 5 different topics
         pool = {c: [p for p in allp if T[p[0]][0] == c and lvl(p) == L] for c in cats}
-        modes.append(pick(pool, 5, cats, cc, tused))
-        if len(modes[-1]) < 5: raise SystemExit(f"not enough level-{L} prompts for {day}")
+        m = pick(pool, 5, cats, cc, tused)
+        if len(m) < 5:  # small levels may reuse a topic from another difficulty (never within this one)
+            m += pick(pool, 5 - len(m), [c for c in cats if c not in {x[1] for x in m}], {}, tused)
+        if len(m) < 5 and L > 1:  # last resort: borrow from the level below
+            low = {c: [p for p in allp if T[p[0]][0] == c and lvl(p) == L - 1 and p[0] not in tused] for c in cats}
+            m += pick(low, 5 - len(m), [c for c in cats if c not in {x[1] for x in m}], {}, tused)
+        if len(m) < 5: raise SystemExit(f"not enough level-{L} prompts for {day}")
+        modes.append(m)
     used.extend(g[4] for m in modes for g in m)
     for m in modes: rng.shuffle(m)
     return {"date": day, "source": "Wikidata (CC0)", "modes": [[g[3] for g in m] for m in modes]}
