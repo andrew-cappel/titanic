@@ -25,7 +25,7 @@ button{font:inherit;color:inherit}
 .sub a{color:var(--gold)}
 @media (max-width:820px){.sky{padding-top:64px}}
 .tl{position:absolute;top:12px;left:12px;z-index:2;display:flex;gap:6px}
-.arch{background:var(--panel);border:1.5px solid var(--line);border-radius:3px;color:var(--ink);font:700 10px var(--mono);letter-spacing:.2em;text-transform:uppercase;padding:7px 10px;cursor:pointer}
+.arch{text-decoration:none;display:inline-block;background:var(--panel);border:1.5px solid var(--line);border-radius:3px;color:var(--ink);font:700 10px var(--mono);letter-spacing:.2em;text-transform:uppercase;padding:7px 10px;cursor:pointer}
 .best{position:absolute;top:12px;right:12px;z-index:2;background:var(--panel);border:1.5px solid var(--gold);border-radius:3px;padding:5px 10px;text-align:right}
 .best .label{display:block;font-size:9px;letter-spacing:.2em}
 .best b{font:400 24px/1 var(--pixel);color:var(--gold)}
@@ -107,7 +107,7 @@ dialog .row{display:grid;gap:8px;margin-top:16px}
 </style>
 </head>
 <body>
-<div class="tl"><button class="arch" id="archBtn">☰ Archive</button><button class="arch" id="snd" aria-pressed="true">♪ On</button></div>
+<div class="tl"><a class="arch" href="/" title="Back to TheGauntlet">◂ Home</a><button class="arch" id="archBtn">☰ Archive</button><button class="arch" id="snd" aria-pressed="true">♪ On</button></div>
 <div class="best" id="best" aria-live="polite"></div>
 <header class="sky">
   <h1 class="logo">TITANIC</h1>
