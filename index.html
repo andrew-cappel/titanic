@@ -204,9 +204,13 @@ const GEN_SUF=/ (national park|national monument|national forest|world heritage 
 function cores(label){const out=new Set();let n=norm(label),p;
   do{p=n;n=n.replace(GEN_PRE,"").replace(GEN_SUF,"").trim()}while(n!==p);
   [n,...n.split(/ and | & /)].forEach(k=>{k=k.trim();if(k.length>=4)out.add(k)});return[...out]}
-function withCores(a){const cnt={};a.forEach(x=>x.c=cores(x.label).filter(k=>!x.keys.includes(k)));
-  a.forEach(x=>x.c.forEach(k=>cnt[k]=(cnt[k]||0)+1));
-  a.forEach(x=>{x.keys.push(...x.c.filter(k=>cnt[k]===1));delete x.c});return a}
+const STOP=new Set(["the","of","and","in","on","at","for","to","de","la","le","el","del","von","van","da","di","du","los","las","des","der","den","its","with","from"]);
+// Any word or two-word chunk of an answer counts on its own if it points to only that answer ("barn" -> Barn Owl).
+function parts(label){const out=new Set(cores(label)),w=norm(label).split(" ");
+  w.forEach((x,i)=>{if(x.length>=3&&!STOP.has(x)&&!/^\d+$/.test(x))out.add(x);if(i&&!STOP.has(w[i-1])&&!STOP.has(x))out.add(w[i-1]+" "+x)});return[...out]}
+function withCores(a){const cnt={},full=new Set(a.flatMap(x=>x.keys));
+  a.forEach(x=>{x.c=parts(x.label).filter(k=>!x.keys.includes(k));x.c.forEach(k=>cnt[k]=(cnt[k]||0)+1)});
+  a.forEach(x=>{x.keys.push(...x.c.filter(k=>cnt[k]===1&&!full.has(k)));delete x.c});return a}
 const promptsFor=m=>(DAILY?DAILY.modes[m]:order.slice(m*5,m*5+5).map(i=>P[i])).map(p=>{const ids=(p[4]||"").split(",");return{q:p[0],qid:p[2],body:p[3],a:withCores(p[1].split("|").map((e,k)=>{const al=e.split("/");return{label:p[3]?al[0]:title(al[0]),keys:al.map(norm),id:ids[k]}}))}});
 
 const KEY=m=>`titanic2:${TODAY}:${MODES[m].id}`;
