@@ -5,7 +5,7 @@ Usage: python3 scripts/generate.py [YYYY-MM-DD ...]   (default: today and tomorr
 Each file holds 4 modes x 5 prompts: [question, "answer/alias|answer|..."].
 prompts/used.json remembers which prompts ran so they don't repeat.
 """
-import json, random, re, sys, time, urllib.parse, urllib.request
+import json, random, re, sys, time, urllib.error, urllib.parse, urllib.request
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -111,7 +111,16 @@ EASY = {
  "breeds": "dog breed=dog breeds|cat breed=cat breeds|horse breed=horse breeds", "dishes": "Italy|Mexico|Japan|France",
  "office": "President of the United States", "paintings": "Vincent van Gogh", "occupation": "conquistador=conquistadors|astronaut=astronauts|pirate=pirates|explorer=explorers",
  "letters": "ia|an|land|stan|ar|ra|en|or|ma|ga", "states": "M|N|I|A|C|W|O",
+ "ranges": "Europe|Asia|North America|South America|United States=the United States",
 }
+# Fixed difficulty per prompt type (2 Medium, 3 Hard, 4 Impossible), with per-subject overrides.
+TIER = {"members": 3, "heritage": 3, "paintings": 3, "battles": 3, "rivers": 3, "lakes": 3, "islands": 3, "parks": 3, "award": 3,
+        "mountains": 4, "volcanoes": 4, "moons": 4, "endemic": 4, "cheeses": 4, "buildings": 4}
+SUBJ_TIER = {"award:" + a: 4 for a in ["Fields Medal", "Turing Award", "Hugo Award for Best Novel", "Nobel Prize in Chemistry", "Nobel Prize in Physics", "Pulitzer Prize for Fiction", "Palme d'Or"]}
+SUBJ_TIER.update({"award:" + a: 2 for a in ["Academy Award for Best Actor", "Academy Award for Best Actress", "Academy Award for Best Picture", "Ballon d'Or"]})
+SUBJ_TIER.update({"species:" + a: 3 for a in ["Mustelidae=species of the weasel family", "Lepidoptera=species of butterfly or moth", "Accipitridae=species of hawk, eagle or kite", "Strigiformes=species of owl", "Pinnipedia=species of seal, sea lion or walrus", "Bovidae=species of antelope, cattle or goat", "Psittaciformes=species of parrot", "Anatidae=species of duck, goose or swan"]})
+SUBJ_TIER.update({"breeds:" + a: 3 for a in ["cattle breed=cattle breeds", "chicken breed=chicken breeds", "sheep breed=sheep breeds"]})
+tier = lambda t, s: SUBJ_TIER.get(f"{t}:{s}", TIER.get(t, 2))
 MIN_ANSWERS, PER_CATEGORY, PER_DAY = 8, 2, 20
 
 QUERY = """SELECT ?x ?label ?sl ?human (GROUP_CONCAT(DISTINCT ?alt; separator="\\t") AS ?alts) WHERE {{
@@ -160,9 +169,14 @@ def fetch(t, s):
     """One prompt: (answer count, category, fame, [question, answers, subject id, check body, answer ids], key) or None."""
     v = T[t]; cat, text, body, minsl, lit = v[0], v[1], v[2], v[3], len(v) > 5
     search, disp = (s.split("=") + [s])[:2]
-    try: qid, rows = sparql(body, search, minsl, lit)
-    except Exception as e: print("  skip", t, s, e, flush=True); time.sleep(3); return None
-    ans, ids = build(rows); time.sleep(1)
+    for attempt in range(5):  # Wikidata rate-limits bursts (HTTP 429): wait and retry instead of skipping
+        try: qid, rows = sparql(body, search, minsl, lit); break
+        except urllib.error.HTTPError as e:
+            if e.code != 429 or attempt == 4: print("  skip", t, s, e, flush=True); return None
+            wait = int(e.headers.get("Retry-After") or 0) or 20 * (attempt + 1)
+            print(f"  rate limited, waiting {wait}s", flush=True); time.sleep(wait)
+        except Exception as e: print("  skip", t, s, e, flush=True); time.sleep(3); return None
+    ans, ids = build(rows); time.sleep(2)
     print(f"  {len(ans):3d}  {text.format(disp)}", flush=True)
     if len(ans) < MIN_ANSWERS: return None
     fame = sorted(int(r["sl"]["value"]) for r in rows[:10])[len(rows[:10]) // 2]  # median fame of top answers
@@ -189,22 +203,20 @@ def make(day, used):
     allp = [(t, s) for t, v in T.items() for s in v[4].split("|") if f"{t}:{s}" not in used]
     rng.shuffle(allp)
     cats = sorted({v[0] for v in T.values()}); rng.shuffle(cats)
-    split = lambda e: {c: [p for p in allp if T[p[0]][0] == c and (f"{p[0]}:{p[1]}" in easy) == e] for c in cats}
-    cc, tused = {}, set()
-    first = pick(split(True), 5, cats, cc, tused)                     # Easy: familiar subjects only
-    rest = pick(split(False), PER_DAY - 5, cats, cc, tused)
-    if len(first) < 5 or len(rest) < PER_DAY - 5: raise SystemExit(f"not enough prompts for {day}")
-    used.extend(g[4] for g in first + rest)
-    rest.sort(key=lambda g: -g[2])                                    # most famous answers = Medium
-    modes = [first] + [rest[i*5:i*5+5] for i in range(3)]
-    bad = lambda: sum(len(m) - len({x[1] for x in m}) for m in modes[1:])
-    for _ in range(5000):                                             # swap until no difficulty repeats a topic
-        if not bad(): break
-        a = rng.randrange(1, 3); b = a + 1; i, j, before = rng.randrange(5), rng.randrange(5), bad()
-        modes[a][i], modes[b][j] = modes[b][j], modes[a][i]
-        if bad() > before: modes[a][i], modes[b][j] = modes[b][j], modes[a][i]
+    lvl = lambda p: 1 if f"{p[0]}:{p[1]}" in easy else tier(*p)
+    cc, tused, modes = {}, set(), []
+    for L in (1, 2, 3, 4):   # each difficulty draws only from its own level, 5 different topics
+        pool = {c: [p for p in allp if T[p[0]][0] == c and lvl(p) == L] for c in cats}
+        modes.append(pick(pool, 5, cats, cc, tused))
+        if len(modes[-1]) < 5: raise SystemExit(f"not enough level-{L} prompts for {day}")
+    used.extend(g[4] for m in modes for g in m)
     for m in modes: rng.shuffle(m)
     return {"date": day, "source": "Wikidata (CC0)", "modes": [[g[3] for g in m] for m in modes]}
+
+def safe_make(day, used):
+    try: return make(day, used)
+    except SystemExit:  # a level ran out of unused prompts: start the rotation over
+        used.clear(); return make(day, used)
 
 def main():
     OUT.mkdir(exist_ok=True)
@@ -216,7 +228,7 @@ def main():
         f = OUT / f"{day}.json"
         if f.exists(): print("exists", f.name); continue
         print("building", day)
-        f.write_text(json.dumps(make(day, used), ensure_ascii=False, separators=(",", ":")))
+        f.write_text(json.dumps(safe_make(day, used), ensure_ascii=False, separators=(",", ":")))
         uf.write_text(json.dumps(used))
     # once every pairing is used, start over
     if len(used) > sum(len(v[4].split("|")) for v in T.values()) - PER_DAY * 2: uf.write_text("[]")
