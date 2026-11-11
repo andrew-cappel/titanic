@@ -190,6 +190,8 @@ let DAILY=null;
 const promptsFor=m=>(DAILY?DAILY.modes[m]:order.slice(m*5,m*5+5).map(i=>P[i])).map(p=>{const ids=(p[4]||"").split(",");return{q:p[0],qid:p[2],body:p[3],a:p[1].split("|").map((e,k)=>{const al=e.split("/");return{label:p[3]?al[0]:title(al[0]),keys:al.map(norm),id:ids[k]}})}});
 
 const KEY=m=>`titanic2:${TODAY}:${MODES[m].id}`;
+// Testing helper: visiting with ?reset clears today's progress so the day can be replayed.
+if(/[?&]reset/.test(location.search)){try{Object.keys(localStorage).filter(k=>k.startsWith("titanic")).forEach(k=>localStorage.removeItem(k))}catch(e){}history.replaceState(null,"",location.pathname)}
 const fresh=()=>({round:0,times:[],pts:[],gave:[],status:"idle"});
 const load=m=>{let v=null;try{v=JSON.parse(localStorage.getItem(KEY(m)))}catch(e){}return v||fresh()};
 const save=m=>{try{localStorage.setItem(KEY(m),JSON.stringify(S[m]))}catch(e){}};
