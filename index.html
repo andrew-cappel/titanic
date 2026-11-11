@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Titanic.io · the daily crossing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sky0:#0a1430; --sea0:#0c2238; --abyss:#050b16;
+  --panel:rgba(10,22,40,.86); --line:#5fd3ff; --line-dim:rgba(95,211,255,.28);
+  --ink:#eaf6ff; --muted:#86a0bd; --gold:#ffd36b; --pink:#ff7aa8; --red:#ff5a4e; --ok:#6cf0b4; --amber:#ffb454;
+  --pixel:"VT323",ui-monospace,monospace; --mono:"Space Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0}
+html{background:var(--abyss)}
+body{background:linear-gradient(var(--sea0),var(--abyss) 520px) var(--abyss);color:var(--ink);font:14px/1.5 var(--mono);-webkit-font-smoothing:antialiased;min-height:100vh}
+button{font:inherit;color:inherit}
+.sky{background:var(--sky0);text-align:center;padding:22px 16px 0}
+.logo{font:400 clamp(64px,15vw,120px)/.8 var(--pixel);letter-spacing:.06em;color:#fff;text-shadow:4px 0 var(--pink),-4px 0 var(--line)}
+.tag{font:700 11px var(--mono);letter-spacing:.42em;color:var(--line);text-transform:uppercase;margin:10px 0 4px}
+.sub{color:var(--muted);font-size:12px;letter-spacing:.06em}
+.scene{display:block;width:100%;height:clamp(150px,37.5vw,360px);object-fit:cover;object-position:50% 100%;image-rendering:pixelated;background:#0b1433}
+.scene.shake{animation:shake .5s}
+@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+main{max-width:600px;margin:-6px auto 0;padding:0 16px 56px;position:relative}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:18px}
+.tab{background:var(--panel);border:1.5px solid var(--line-dim);border-radius:3px;padding:8px 2px 6px;cursor:pointer;font:700 10px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.tab small{display:block;font:400 20px/1 var(--pixel);letter-spacing:.04em;margin-top:3px}
+.tab[aria-selected="true"]{border-color:var(--line);color:var(--ink);box-shadow:0 0 0 1px var(--line),0 0 18px rgba(95,211,255,.25)}
+.tab:disabled{cursor:not-allowed;opacity:.35}
+.tab .mark{color:var(--ok);margin-left:4px}.tab .mark.x{color:var(--red)}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.panel{background:var(--panel);border:2px solid var(--line);border-radius:4px;padding:18px 18px 16px;box-shadow:0 0 28px rgba(95,211,255,.12),inset 0 0 0 1px rgba(255,255,255,.04);backdrop-filter:blur(6px);position:relative}
+.panel::before,dialog::before{content:"";position:absolute;left:-2px;right:-2px;top:-4px;height:10px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='10' shape-rendering='crispEdges'%3E%3Crect width='24' height='3' fill='%23eaf8ff'/%3E%3Crect x='2' y='3' width='3' height='3' fill='%23eaf8ff'/%3E%3Crect x='3' y='6' width='1' height='2' fill='%239fd2ea'/%3E%3Crect x='9' y='3' width='2' height='2' fill='%23c3e5f4'/%3E%3Crect x='15' y='3' width='3' height='4' fill='%23eaf8ff'/%3E%3Crect x='16' y='7' width='1' height='3' fill='%239fd2ea'/%3E%3Crect x='21' y='3' width='2' height='1' fill='%23c3e5f4'/%3E%3C/svg%3E") repeat-x 0 0/24px 10px;image-rendering:pixelated;pointer-events:none}
+dialog{overflow:visible}
+.giveup{z-index:1}
+.label{font:700 10px var(--mono);letter-spacing:.28em;text-transform:uppercase;color:var(--muted)}
+.hud{display:grid;grid-template-columns:1fr auto auto;gap:18px;align-items:end;padding-bottom:12px;border-bottom:1px dashed var(--line-dim)}
+.dots{display:flex;gap:5px;margin-top:6px}
+.dots i{width:12px;height:12px;border:1.5px solid var(--line-dim)}
+.dots i.done{background:var(--line);border-color:var(--line)}
+.dots i.gave{background:var(--amber);border-color:var(--amber)}
+.dots i.lost{background:var(--red);border-color:var(--red)}
+.dots i.cur{border-color:var(--ink)}
+.num{font:400 40px/.9 var(--pixel);font-variant-numeric:tabular-nums;text-align:right}
+.num.gold{color:var(--gold)}
+.num.danger{color:var(--red);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.55}}
+.prompt{font:400 clamp(28px,7vw,38px)/1.05 var(--pixel);margin:16px 0 14px;text-wrap:balance;min-height:1.1em}
+form{display:flex;gap:8px}
+input{flex:1;min-width:0;font:400 16px var(--mono);color:var(--ink);background:rgba(0,0,0,.35);border:1.5px solid var(--line-dim);border-radius:3px;padding:12px 14px;caret-color:var(--line)}
+input::placeholder{color:#5d7590}
+input:focus{border-color:var(--line);outline:0}
+input.bad{animation:shake .35s;border-color:var(--red)}
+.btn{background:rgba(95,211,255,.08);border:2px solid var(--line);border-radius:3px;font:700 13px var(--mono);letter-spacing:.24em;text-transform:uppercase;padding:12px 16px;cursor:pointer;color:var(--ink)}
+.btn:hover{background:rgba(95,211,255,.18)}
+.btn.big{display:block;width:100%;padding:18px;font-size:15px;letter-spacing:.3em;box-shadow:0 0 22px rgba(95,211,255,.2)}
+.btn.quiet{border-color:var(--line-dim);font-size:11px;padding:9px 12px}
+.giveup{position:absolute;top:-13px;right:12px;background:var(--abyss);border:1.5px solid var(--amber);color:var(--amber);font:700 10px var(--mono);letter-spacing:.2em;text-transform:uppercase;padding:4px 9px;border-radius:2px;cursor:pointer}
+.giveup.arm{background:var(--amber);color:var(--abyss)}
+.msg{min-height:22px;font-size:12px;color:var(--muted);margin:8px 2px;letter-spacing:.04em}
+.msg.bad{color:var(--red)}.msg.good{color:var(--ok)}
+ol.slots{list-style:none;padding:0;display:grid;gap:6px}
+.slots li{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:8px;border:1.5px dashed var(--line-dim);border-radius:3px;padding:7px 10px;min-height:42px;font-size:15px}
+.slots li b{font:400 22px/1 var(--pixel);color:var(--muted)}
+.slots li em{font:400 20px/1 var(--pixel);color:var(--gold);font-style:normal;opacity:0}
+.slots li.filled{border-style:solid;border-color:var(--line);background:rgba(95,211,255,.06)}
+.slots li.filled b{color:var(--line)}
+.slots li.filled em{opacity:1;animation:pop .45s}
+.slots li.filled span{animation:pop .3s}
+@keyframes pop{from{opacity:0;transform:translateY(5px)}}
+.intro{text-align:center;padding:6px 0 2px}
+.intro p{color:var(--muted);margin:8px auto 18px;max-width:44ch;font-size:12px}
+.rules{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 6px}
+.rules div{border:1px solid var(--line-dim);border-radius:3px;padding:8px 4px}
+.rules b{display:block;font:400 28px/1 var(--pixel);color:var(--gold);font-weight:400}
+.foot{display:flex;justify-content:space-between;margin-top:14px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#56708d}
+dialog{margin:auto;border:2px solid var(--line);border-radius:4px;padding:26px 22px 20px;max-width:400px;width:calc(100% - 32px);background:#0a1628;color:var(--ink);text-align:center;box-shadow:0 0 40px rgba(95,211,255,.25)}
+dialog::backdrop{background:rgba(3,8,16,.7)}
+dialog h2{font:400 42px/1 var(--pixel);letter-spacing:.04em;margin:4px 0 6px}
+dialog p{color:var(--muted);font-size:12px}
+.tally{border-top:1px dashed var(--line-dim);border-bottom:1px dashed var(--line-dim);margin:14px 0;padding:10px 0;display:grid;gap:4px;text-align:left}
+.tally div{display:flex;justify-content:space-between;align-items:baseline}
+.tally span:last-child{font:400 26px/1 var(--pixel);color:var(--ink)}
+.tally .total span:last-child{font-size:44px;color:var(--gold)}
+.reveal{font-size:12px;color:var(--ink)!important;margin-top:10px}
+dialog .row{display:grid;gap:8px;margin-top:16px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important}}
+</style>
+</head>
+<body>
+<header class="sky">
+  <h1 class="logo">TITANIC</h1>
+  <p class="tag">the daily crossing</p>
+  <p class="sub" id="sub"></p>
+</header>
+<canvas class="scene" id="scene" width="640" height="120" role="img" aria-label="The ship sails toward an iceberg as the clock runs down"></canvas>
+
+<main>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <section class="panel" id="panel">
+    <button class="giveup" id="giveup" hidden>Give up</button>
+    <div class="hud">
+      <div><div class="label" id="roundLbl">Round 1/5</div><div class="dots" id="dots"></div></div>
+      <div><div class="label">Score</div><div class="num gold" id="score">0</div></div>
+      <div><div class="label">Clock</div><div class="num" id="timer">2:30</div></div>
+    </div>
+    <p class="prompt" id="prompt"></p>
+    <div id="intro" class="intro" hidden></div>
+    <div id="game" hidden>
+      <form id="form" autocomplete="off">
+        <label class="sr" for="answer">Your answer</label>
+        <input id="answer" placeholder="type an answer + enter" autocapitalize="off" spellcheck="false">
+        <button class="btn" type="submit">Add</button>
+      </form>
+      <p class="msg" id="msg" aria-live="polite"></p>
+      <ol class="slots" id="slots"></ol>
+    </div>
+  </section>
+  <div class="foot"><span id="crossing"></span><span>100 pts per answer</span></div>
+</main>
+
+<dialog id="modal"><div id="modalBody"></div></dialog>
+
+<script>
+const MODES=[{id:"easy",name:"Easy",secs:150},{id:"medium",name:"Medium",secs:120},{id:"hard",name:"Hard",secs:105},{id:"impossible",name:"Impossible",secs:90}];
+const PTS=100;
+const P=[
+["Name five animals native to Asia","tiger|giant panda/panda|red panda|orangutan|komodo dragon|snow leopard|yak|asian elephant/elephant|king cobra|gibbon|pangolin|sun bear|sloth bear|malayan tapir/tapir|binturong|proboscis monkey|japanese macaque/macaque/snow monkey|slow loris/loris|tarsier|gaur|water buffalo|bactrian camel/camel|saiga|takin|clouded leopard|indian rhinoceros/indian rhino|javan rhinoceros/javan rhino|sumatran rhinoceros/sumatran rhino|indian peafowl/peacock/peafowl|mandarin duck|gharial|dhole|muntjac|sika deer|chital/spotted deer|nilgai|blackbuck|snub-nosed monkey|siamang|przewalski's horse|asiatic lion|markhor|mongoose|reticulated python|asian black bear/moon bear|raccoon dog/tanuki|tibetan fox|chinese alligator|giant salamander"],
+["Name five inventors from Europe","johannes gutenberg/gutenberg|galileo galilei/galileo|guglielmo marconi/marconi|alessandro volta/volta|alexander graham bell/bell|james watt/watt|nikola tesla/tesla|leonardo da vinci/da vinci/leonardo|louis braille/braille|karl benz/benz|rudolf diesel/diesel|alfred nobel/nobel|louis pasteur/pasteur|montgolfier brothers/montgolfier|lumiere brothers/lumiere|louis daguerre/daguerre|john logie baird/baird|tim berners-lee/berners-lee|george stephenson/stephenson|michael faraday/faraday|isaac newton/newton|christiaan huygens/huygens|blaise pascal/pascal|gottlieb daimler/daimler|ferdinand von zeppelin/zeppelin|hans lippershey/lippershey|antonie van leeuwenhoek/van leeuwenhoek/leeuwenhoek|joseph swan/swan|richard trevithick/trevithick|charles babbage/babbage|humphry davy/davy|wilhelm rontgen/rontgen/roentgen|nikolaus otto/otto|nicephore niepce/niepce|laszlo biro/biro|erno rubik/rubik|frank whittle/whittle|evangelista torricelli/torricelli|daniel gabriel fahrenheit/fahrenheit|anders celsius/celsius|john harrison/harrison|richard arkwright/arkwright|james hargreaves/hargreaves|christopher cockerell/cockerell|james dyson/dyson|robert bosch/bosch|ernst ruska/ruska|hedy lamarr/lamarr"],
+["Name five Netflix original TV shows","stranger things|the crown|squid game|wednesday|bridgerton|ozark|house of cards|orange is the new black|narcos|the witcher|money heist/la casa de papel|mindhunter|the umbrella academy|dark|you|sex education|the queen's gambit|lupin|13 reasons why/thirteen reasons why|bojack horseman|big mouth|never have i ever|emily in paris|the haunting of hill house|outer banks|ginny and georgia|the night agent|beef|3 body problem/three body problem|one piece|russian doll|the kominsky method|unbreakable kimmy schmidt|daredevil|jessica jones|luke cage|glow|master of none|love death and robots|maid|the sandman|baby reindeer|adolescence|the gentlemen|the diplomat|sweet tooth|shadow and bone|alice in borderland|elite|atypical|dead to me|sense8|the oa|altered carbon|the politician|inventing anna|monster/dahmer|the fall of the house of usher|midnight mass|ripley|1899|tiger king|making a murderer|love is blind|too hot to handle|selling sunset|queer eye|drive to survive/formula 1 drive to survive|our planet|blue eye samurai|castlevania|kingdom|all of us are dead|the glory|marco polo|hemlock grove|cobra kai|black mirror|arcane|the ranch|the society|lockwood and co|kaos|the residence|zero day|mo"],
+["Name five large cats native to South America","jaguar|puma/cougar/mountain lion|ocelot|margay|oncilla/little spotted cat|jaguarundi|kodkod/guina|geoffroy's cat|pampas cat|andean mountain cat/andean cat"],
+["Name five Renaissance figures","leonardo da vinci/leonardo/da vinci|michelangelo|raphael|donatello|sandro botticelli/botticelli|titian|galileo galilei/galileo|nicolaus copernicus/copernicus|niccolo machiavelli/machiavelli|lorenzo de' medici/lorenzo de medici/lorenzo the magnificent|cosimo de' medici/cosimo de medici|petrarch|giovanni boccaccio/boccaccio|dante alighieri/dante|erasmus|thomas more|william shakespeare/shakespeare|miguel de cervantes/cervantes|albrecht durer/durer/dürer|jan van eyck/van eyck|hieronymus bosch/bosch|filippo brunelleschi/brunelleschi|lorenzo ghiberti/ghiberti|giotto|masaccio|donato bramante/bramante|giorgio vasari/vasari|fra angelico|filippo lippi|tintoretto|paolo veronese/veronese|giovanni bellini/bellini|andrea mantegna/mantegna|andrea del verrocchio/verrocchio|pico della mirandola|girolamo savonarola/savonarola|johannes gutenberg/gutenberg|michel de montaigne/montaigne|francois rabelais/rabelais|hans holbein/holbein|pieter bruegel/bruegel/brueghel|edmund spenser/spenser|christopher marlowe/marlowe|andreas vesalius/vesalius|tycho brahe/brahe|johannes kepler/kepler|andrea palladio/palladio|leon battista alberti/alberti|baldassare castiglione/castiglione|isabella d'este|lucrezia borgia|cesare borgia|pope julius ii/julius ii|martin luther/luther|john calvin/calvin|francis bacon|elizabeth i/queen elizabeth i|henry viii|marsilio ficino/ficino|benvenuto cellini/cellini|giorgione|correggio|parmigianino|paolo uccello/uccello|piero della francesca|domenico ghirlandaio/ghirlandaio|perugino"],
+["Name five Pixar films","toy story|a bug's life|toy story 2|monsters inc|finding nemo|the incredibles|cars|ratatouille|wall-e/walle|up|toy story 3|cars 2|brave|monsters university|inside out|the good dinosaur|finding dory|cars 3|coco|incredibles 2|toy story 4|onward|soul|luca|turning red|lightyear|elemental|inside out 2|elio"],
+["Name five Impressionist or Post-Impressionist painters","claude monet/monet|pierre-auguste renoir/renoir|edgar degas/degas|edouard manet/manet|camille pissarro/pissarro|alfred sisley/sisley|berthe morisot/morisot|mary cassatt/cassatt|paul cezanne/cezanne|gustave caillebotte/caillebotte|frederic bazille/bazille|armand guillaumin/guillaumin|paul gauguin/gauguin|vincent van gogh/van gogh|georges seurat/seurat|henri de toulouse-lautrec/toulouse-lautrec/lautrec|paul signac/signac|eva gonzales/gonzales|henri rousseau/rousseau"],
+["Name five countries that border Germany","denmark|poland|czech republic/czechia|austria|switzerland|france|luxembourg|belgium|netherlands/holland"],
+["Name five actors who have played James Bond","sean connery/connery|george lazenby/lazenby|roger moore/moore|timothy dalton/dalton|pierce brosnan/brosnan|daniel craig/craig|david niven/niven|barry nelson/nelson"],
+["Name five animals native to Australia","kangaroo|koala|wombat|platypus|echidna|emu|dingo|tasmanian devil|quokka|wallaby|cassowary|kookaburra|cockatoo|galah|budgerigar/budgie|frilled lizard/frill-necked lizard|thorny devil|bilby|numbat|sugar glider|brushtail possum/possum|saltwater crocodile/saltie|inland taipan/taipan|lyrebird|quoll|bandicoot|thylacine/tasmanian tiger|wallaroo|cuscus|potoroo|bettong|pademelon|blue-tongued skink/bluetongue|perentie|redback spider/redback|funnel-web spider/funnel web"],
+["Name five of the Seven Wonders of the Ancient World","great pyramid of giza/great pyramid/pyramid of giza/pyramids|hanging gardens of babylon/hanging gardens|temple of artemis|statue of zeus|mausoleum at halicarnassus/mausoleum of halicarnassus/mausoleum|colossus of rhodes/colossus|lighthouse of alexandria/pharos of alexandria/pharos"],
+["Name five ancient Greek philosophers","socrates|plato|aristotle|pythagoras|heraclitus|democritus|epicurus|zeno|diogenes|thales|parmenides|anaximander|anaximenes|empedocles|anaxagoras|protagoras|gorgias|xenophon|theophrastus|epictetus|chrysippus|pyrrho|leucippus|xenophanes|plotinus|hypatia|antisthenes|aristippus|cleanthes|archimedes|euclid"],
+["Name five classic cocktails","martini|margarita|mojito|old fashioned|manhattan|negroni|daiquiri|cosmopolitan|pina colada|mai tai|bloody mary|whiskey sour/whisky sour|gimlet|sidecar|moscow mule|long island iced tea|tom collins|aperol spritz/spritz|caipirinha|mint julep|sazerac|french 75|paloma|dark and stormy/dark n stormy|white russian|black russian|espresso martini|bellini|mimosa|cuba libre|gin and tonic|screwdriver|sex on the beach|tequila sunrise|hurricane|singapore sling|zombie|boulevardier|aviation|last word|paper plane|penicillin|irish coffee|grasshopper|kir royale|rob roy|salty dog|americano|pisco sour|bramble|vesper"],
+["Name five species of wild cat","lion|tiger|leopard|jaguar|snow leopard|cheetah|cougar/puma/mountain lion|clouded leopard|lynx|ocelot|caracal|serval|bobcat|margay|oncilla|fishing cat|sand cat|pallas cat/manul|jaguarundi|wildcat|black-footed cat|kodkod"],
+["Name five countries in South America","argentina|bolivia|brazil|chile|colombia|ecuador|guyana|paraguay|peru|suriname|uruguay|venezuela"],
+["Name five plays by Shakespeare","hamlet|macbeth|othello|king lear/lear|romeo and juliet|julius caesar|tempest|twelfth night|midsummer nights dream/a midsummer nights dream|much ado about nothing|merchant of venice|richard iii/richard 3|richard ii/richard 2|henry v/henry 5|henry iv/henry 4|henry vi/henry 6|henry viii/henry 8|antony and cleopatra|coriolanus|titus andronicus|winters tale|as you like it|taming of the shrew|cymbeline|pericles|timon of athens|troilus and cressida|measure for measure|alls well that ends well|comedy of errors|loves labours lost|two gentlemen of verona|merry wives of windsor|king john"],
+["Name five U.S. states that start with M","maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana"],
+["Name five bones in the human body","femur|tibia|fibula|humerus|radius|ulna|skull/cranium|mandible/jawbone|clavicle/collarbone|scapula/shoulder blade|sternum/breastbone|rib|patella/kneecap|pelvis/hip bone|sacrum|coccyx/tailbone|vertebra/vertebrae|carpal|metacarpal|phalanx/phalanges|tarsal|metatarsal|talus|calcaneus/heel bone|maxilla|hyoid|stapes|incus|malleus|ilium|ischium|pubis|ethmoid|sphenoid|occipital|parietal|temporal|frontal|nasal|zygomatic/cheekbone|scaphoid|lunate"],
+["Name five Greek gods or goddesses","zeus|hera|poseidon|demeter|athena|apollo|artemis|ares|aphrodite|hephaestus|hermes|dionysus|hestia|hades|persephone|eros|nike|hecate|pan|gaia|helios|selene|eos|iris|hypnos|thanatos|nemesis|tyche|cronus/kronos|rhea|uranus|nyx|morpheus|asclepius|prometheus|atlas"],
+["Name five programming languages","python|javascript|java|c|c++|c#|ruby|go/golang|rust|swift|kotlin|php|perl|haskell|scala|typescript|r|matlab|fortran|cobol|lisp|lua|dart|julia|elixir|erlang|clojure|f#|objective c|assembly|bash|sql|pascal|ada|prolog|ocaml|groovy|zig|nim|crystal|visual basic/vb|delphi|smalltalk|scratch|basic"],
+["Name five dog breeds","labrador/labrador retriever/lab|golden retriever|german shepherd|bulldog|poodle|beagle|rottweiler|dachshund|boxer|husky/siberian husky|great dane|doberman|chihuahua|pug|shih tzu|corgi|border collie|collie|yorkshire terrier/yorkie|maltese|pomeranian|shiba inu|akita|samoyed|dalmatian|greyhound|whippet|saint bernard/st bernard|newfoundland|bernese mountain dog|mastiff|bloodhound|basset hound|cocker spaniel|springer spaniel|weimaraner|vizsla|pit bull|bull terrier|jack russell|schnauzer|papillon|havanese|bichon frise|chow chow|shar pei|afghan hound|basenji|malamute/alaskan malamute|australian shepherd|cavalier king charles spaniel|boston terrier|french bulldog|irish setter|pointer|irish wolfhound|sheltie/shetland sheepdog"],
+["Name five elements with a one-letter chemical symbol","hydrogen|boron|carbon|nitrogen|oxygen|fluorine|phosphorus|sulfur/sulphur|potassium|vanadium|yttrium|iodine|tungsten|uranium"],
+["Name five Olympic sports","swimming|athletics/track and field|gymnastics|rowing|cycling|fencing|boxing|wrestling|judo|taekwondo|archery|shooting|sailing|canoeing/kayaking|diving|equestrian|triathlon|weightlifting|handball|basketball|volleyball|football/soccer|hockey/field hockey|ice hockey|tennis|table tennis/ping pong|badminton|golf|rugby|water polo|skateboarding|surfing|climbing/sport climbing|karate|baseball|softball|breaking/breakdancing|skiing|snowboarding|biathlon|bobsled/bobsleigh|luge|skeleton|curling|figure skating|speed skating|ski jumping|modern pentathlon|beach volleyball"],
+["Name five instruments found in an orchestra","violin|viola|cello|double bass/bass/contrabass|harp|flute|piccolo|oboe|cor anglais/english horn|clarinet|bassoon|contrabassoon|french horn/horn|trumpet|trombone|tuba|timpani|snare drum|bass drum|cymbals|triangle|xylophone|glockenspiel|celesta|piano|harpsichord|organ|saxophone|tambourine|gong|marimba|vibraphone|chimes/tubular bells|castanets"],
+["Name five capital cities in Europe","london|paris|berlin|madrid|rome|lisbon|dublin|amsterdam|brussels|vienna|bern|prague|warsaw|budapest|bucharest|sofia|athens|belgrade|zagreb|ljubljana|bratislava|copenhagen|oslo|stockholm|helsinki|reykjavik|tallinn|riga|vilnius|kyiv/kiev|minsk|chisinau|tirana|skopje|sarajevo|podgorica|valletta|nicosia|luxembourg|monaco|andorra la vella|san marino|vaduz|moscow|ankara|vatican city|pristina|tbilisi|yerevan|baku"],
+["Name five birds that cannot fly","ostrich|emu|kiwi|penguin|cassowary|rhea|kakapo|takahe|dodo|moa|great auk|weka|steamer duck|flightless cormorant|elephant bird|inaccessible island rail"],
+["Name five gemstones","diamond|ruby|sapphire|emerald|amethyst|topaz|opal|garnet|pearl|jade|turquoise|aquamarine|peridot|tourmaline|tanzanite|onyx|citrine|lapis lazuli|moonstone|zircon|spinel|alexandrite|jasper|agate|malachite|obsidian|amber|beryl|quartz|morganite|tigers eye|bloodstone|carnelian|jet|coral|kunzite|iolite|sunstone|rose quartz|chrysoberyl"],
+["Name five oceans or seas","pacific|atlantic|indian|arctic|southern|mediterranean|caribbean|north|baltic|black|red|caspian|dead|aral|south china|east china|yellow|sea of japan|bering|arabian|coral|tasman|adriatic|aegean|ionian|tyrrhenian|ligurian|labrador|norwegian|barents|weddell|ross|sargasso|irish|celtic|java|philippine|sea of okhotsk|beaufort|kara|laptev|andaman|sulu|white|sea of marmara|sea of azov"],
+["Name five constellations","orion|ursa major/big dipper/great bear|ursa minor/little dipper|cassiopeia|cygnus|scorpius/scorpio|leo|taurus|gemini|cancer|virgo|libra|sagittarius|capricornus/capricorn|aquarius|pisces|aries|andromeda|perseus|pegasus|draco|lyra|aquila|hercules|centaurus|crux/southern cross|canis major|canis minor|bootes|cepheus|auriga|ophiuchus|hydra|lupus|corvus|carina|vela|puppis|eridanus|cetus|phoenix|columba|monoceros|delphinus|sagitta|lepus|corona borealis|serpens|pavo|tucana|grus"],
+["Name five vegetables that grow underground","potato|carrot|beet/beetroot|radish|turnip|parsnip|onion|garlic|sweet potato/yam|ginger|turmeric|cassava/yuca|taro|rutabaga/swede|celeriac|jicama|horseradish|shallot|leek|daikon|jerusalem artichoke/sunchoke|salsify|burdock|wasabi|lotus root|water chestnut|peanut|yacon|arrowroot"],
+["Name five card games","poker|blackjack|bridge|rummy|gin rummy/gin|solitaire|hearts|spades|go fish|old maid|war|crazy eights|uno|euchre|cribbage|canasta|baccarat|whist|snap|president|spit|speed|pinochle|skat|durak|cheat/bs/i doubt it|slapjack|egyptian ratscrew|klondike|freecell|spider|patience|texas holdem|belote|scopa|briscola|mau mau|oh hell|pitch|sheepshead|tarot|cassino|pontoon"],
+["Name five mountains over 8,000 metres","everest|k2|kangchenjunga|lhotse|makalu|cho oyu|dhaulagiri|manaslu|nanga parbat|annapurna|gasherbrum i/gasherbrum 1/hidden peak|broad peak|gasherbrum ii/gasherbrum 2|shishapangma"],
+["Name five board games","chess|checkers/draughts|monopoly|scrabble|clue/cluedo|risk|backgammon|go|catan/settlers of catan|ticket to ride|battleship|candy land|chutes and ladders/snakes and ladders|sorry|trivial pursuit|mancala|othello/reversi|connect four/connect 4|stratego|pandemic|carcassonne|parcheesi/ludo|mouse trap|operation|guess who|life/game of life|pictionary|boggle|jenga|yahtzee|azul|wingspan|codenames|dominion|terraforming mars|axis and allies|diplomacy|twister|hungry hungry hippos|trouble|splendor|gloomhaven|agricola|chinese checkers|shogi|xiangqi|mahjong|dominoes|blokus|sequence|cranium|taboo|scattergories|rummikub|hive"],
+["Name five car manufacturers","toyota|honda|ford|chevrolet/chevy|bmw|mercedes/mercedes benz|audi|volkswagen/vw|nissan|hyundai|kia|mazda|subaru|tesla|porsche|ferrari|lamborghini|maserati|bugatti|bentley|rolls royce|jaguar|land rover|aston martin|mclaren|lotus|mini|volvo|saab|fiat|alfa romeo|peugeot|renault|citroen|skoda|seat|dacia|opel|vauxhall|lexus|acura|infiniti|genesis|cadillac|buick|gmc|chrysler|dodge|jeep|ram|lincoln|mitsubishi|suzuki|isuzu|byd|geely|polestar|rivian|lucid|pagani|koenigsegg|tata|mahindra|lada|smart|lancia|daewoo|pontiac|saturn|hummer|plymouth|oldsmobile|mercury|scion"],
+["Name five major rivers of the world","nile|amazon|yangtze|mississippi|missouri|yenisei|yellow/huang he|ob|parana|congo|amur|lena|mekong|mackenzie|niger|murray|volga|danube|rhine|ganges|indus|brahmaputra|euphrates|tigris|zambezi|orinoco|colorado|columbia|rio grande|yukon|st lawrence/saint lawrence|thames|seine|loire|elbe|dnieper|don|ural|irrawaddy|salween|tagus|po|ohio|snake|darling|limpopo|orange|jordan|shannon|vistula|oder|rhone|hudson|delaware|potomac|tennessee|arkansas|red"],
+["Name five shapes of pasta","spaghetti|penne|fusilli|rigatoni|farfalle/bowtie/bow tie|linguine|fettuccine|tagliatelle|macaroni|lasagna/lasagne|ravioli|tortellini|orzo|gnocchi|orecchiette|pappardelle|ziti|rotini|conchiglie/shells|cannelloni|manicotti|capellini/angel hair|bucatini|vermicelli|ditalini|radiatore|gemelli|campanelle|cavatappi|paccheri|strozzapreti|trofie|agnolotti|mafalde|stelline|tortiglioni|casarecce|anelli|bigoli|cavatelli|fregola|garganelli|pici|lumache|spaghettini|tortelloni"],
+["Name five moons in our solar system","moon/luna|io|europa|ganymede|callisto|titan|enceladus|mimas|tethys|dione|rhea|iapetus|hyperion|phoebe|miranda|ariel|umbriel|titania|oberon|triton|nereid|phobos|deimos|charon|amalthea|himalia|pan|atlas|prometheus|pandora|janus|epimetheus|proteus|larissa|nix|hydra|puck|thebe|metis|adrastea|elara|kerberos|styx|dysnomia"],
+["Name five spices","cinnamon|nutmeg|clove|cumin|turmeric|paprika|cardamom|ginger|black pepper/pepper|saffron|coriander|fennel seed/fennel|star anise|anise|allspice|mace|cayenne|chili powder|mustard seed/mustard|fenugreek|sumac|caraway|vanilla|juniper|sichuan pepper|garam masala|curry powder|zaatar|asafoetida|nigella|white pepper|pink peppercorn|celery seed|poppy seed|sesame|annatto|galangal|smoked paprika|chipotle|ancho|five spice|ras el hanout|berbere|dill seed|tamarind|sumac"],
+["Name five breeds of horse","arabian|thoroughbred|quarter horse|appaloosa|mustang|clydesdale|shire|percheron|friesian|andalusian|lipizzaner|morgan|tennessee walker/tennessee walking horse|paint|shetland|welsh pony|connemara|icelandic|haflinger|belgian|hanoverian|trakehner|akhal teke|standardbred|mongolian|falabella|fjord|lusitano|paso fino|criollo|brumby|exmoor|dartmoor|suffolk punch|gypsy vanner|holsteiner|oldenburg|marwari|knabstrupper"]
+];
+const $=id=>document.getElementById(id);
+const norm=s=>s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/&/g," and ").replace(/['’.]/g,"").replace(/[-_\/,]/g," ").replace(/[^a-z0-9+# ]/g,"").replace(/\s+/g," ").trim().replace(/^(the|a|an) /,"").replace(/ (river|ocean|sea)$/,"");
+const lev=(a,b)=>{if(Math.abs(a.length-b.length)>2)return 9;let p=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){const c=[i];for(let j=1;j<=b.length;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[b.length]};
+const CAPS=new Set(["bmw","gmc","byd","vw","bs","sql","php","k2","vb","f#","c#","c++","c","r"]);
+const SMALL=new Set(["a","an","and","the","of","in","is","on","to","at","da","de","del","della","van","von","di","d'este","de'","n"]);
+const title=s=>CAPS.has(s)?s.toUpperCase():s.split(" ").map((w,i)=>i&&SMALL.has(w)?w:w.charAt(0).toUpperCase()+w.slice(1)).join(" ").replace(/-([a-z])/g,(m,c)=>"-"+c.toUpperCase());
+const clock=ms=>{const t=Math.max(0,Math.ceil(ms/1000));return Math.floor(t/60)+":"+String(t%60).padStart(2,"0")};
+const fmt=ms=>{const s=ms/1000;return Math.floor(s/60)+":"+(s%60).toFixed(1).padStart(4,"0")};
+const sum=a=>a.reduce((x,y)=>x+y,0);
+
+const d=new Date(Date.now()-2*36e5),TODAY=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const DAY=Math.floor((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-Date.UTC(2026,0,1))/864e5)+1;
+$("sub").textContent=`5 prompts · 5 answers each · one clock · crossing #${DAY}`;
+$("crossing").textContent=d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
+function rng(str){let h=1779033703^str.length;for(const c of str){h=Math.imul(h^c.charCodeAt(0),3432918353);h=h<<13|h>>>19}return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296}}
+const order=(()=>{const r=rng("titanic"+TODAY),a=P.map((_,i)=>i);for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a})();
+let DAILY=null;
+const promptsFor=m=>(DAILY?DAILY.modes[m]:order.slice(m*5,m*5+5).map(i=>P[i])).map(p=>({q:p[0],a:p[1].split("|").map(e=>{const al=e.split("/");return{label:title(al[0]),keys:al.map(norm)}})}));
+
+const KEY=m=>`titanic2:${TODAY}:${MODES[m].id}`;
+const fresh=()=>({round:0,times:[],pts:[],gave:[],status:"idle"});
+const load=m=>{let v=null;try{v=JSON.parse(localStorage.getItem(KEY(m)))}catch(e){}return v||fresh()};
+const save=m=>{try{localStorage.setItem(KEY(m),JSON.stringify(S[m]))}catch(e){}};
+const S=MODES.map((_,m)=>{const s=load(m);if(s.status==="playing")s.status="idle";return s});
+let mode=0,run=null,armT=0;
+try{const t=+localStorage.getItem("titanic:tab");if(t>=0&&t<4)mode=t}catch(e){}
+
+
+const SHIP_START=430,SHIP_END=812,total=()=>MODES[mode].secs*1000;
+function setShip(p){shipP=Math.min(1,Math.max(0,p))}
+function resetShip(){sinkT=0;stopped=false}
+
+function renderTabs(){
+  $("tabs").innerHTML=MODES.map((m,i)=>{const st=S[i].status;
+    return `<button class="tab" role="tab" aria-selected="${i===mode}" ${run&&i!==mode?"disabled":""} data-i="${i}">${m.name}${st==="won"?'<span class="mark">✓</span>':st==="lost"?'<span class="mark x">✕</span>':""}<small>${clock(m.secs*1000)}</small></button>`}).join("");
+}
+$("tabs").onclick=e=>{const b=e.target.closest(".tab");if(!b||b.disabled||run)return;mode=+b.dataset.i;try{localStorage.setItem("titanic:tab",mode)}catch(e){}render()};
+
+function renderHud(){
+  const s=S[mode],cur=run?s.round:-1;
+  $("roundLbl").textContent=`Round ${Math.min(s.round+1,5)}/5`;
+  $("dots").innerHTML=[0,1,2,3,4].map(i=>`<i class="${i<s.times.length?(s.gave[i]?"gave":"done"):s.status==="lost"&&i===s.round?"lost":i===cur?"cur":""}"></i>`).join("");
+  $("score").textContent=s.final??(sum(s.pts)+(run?run.got.length*PTS:0));
+}
+
+function render(){
+  const s=S[mode],m=MODES[mode],left=total()-sum(s.times);
+  renderTabs();renderHud();resetShip();setShip(sum(s.times)/total());
+  $("timer").textContent=clock(left);$("timer").classList.toggle("danger",left<10000&&s.status!=="won");
+  $("game").hidden=true;$("intro").hidden=false;$("giveup").hidden=true;
+  if(s.status==="won"||s.status==="lost"){
+    const lost=s.status==="lost";
+    if(lost){setShip(1);stopped=true;sinkT=performance.now()-9999;$("timer").textContent="0:00"}else stopped=true;
+    $("prompt").textContent=lost?"Struck the iceberg.":"Safe harbour.";
+    $("intro").innerHTML=`${tally(s)}<p>New prompts tomorrow. Try another difficulty in the meantime.</p><button class="btn big" id="shareBtn">Share result</button>`;$("shareBtn").onclick=share;
+  }else{
+    $("prompt").textContent=s.round?`Round ${s.round+1} awaits.`:"Five answers. Before the ice.";
+    $("intro").innerHTML=`${s.round?"":`<div class="rules"><div><b>${clock(m.secs*1000)}</b><span class="label">one clock</span></div><div><b>+${PTS}</b><span class="label">per answer</span></div><div><b>×2.0</b><span class="label">max bonus</span></div></div>`}<p>${s.round?`${clock(left)} left. The clock starts again when you continue.`:"Name five for each of five prompts. The clock pauses between rounds, and time left at the end multiplies your score."}</p><button class="btn big" id="go">▼ ${s.round?"Continue to Round "+(s.round+1):"Set sail"} ▼</button>`;$("go").onclick=startRound;
+  }
+}
+
+function finalize(s){const left=Math.max(0,total()-sum(s.times));s.score=sum(s.pts);s.mult=Math.round((1+left/total())*100)/100;s.final=Math.round(s.score*s.mult);s.left=left}
+function tally(s){return `<div class="tally"><div><span class="label">Answers</span><span>${s.score}</span></div><div><span class="label">Time left ${clock(s.left)}</span><span>×${s.mult.toFixed(2)}</span></div><div class="total"><span class="label">Final score</span><span>${s.final}</span></div></div>`}
+
+function startRound(){
+  const s=S[mode],pr=promptsFor(mode)[s.round];
+  s.status="playing";save(mode);
+  run={pr,got:[],t0:performance.now(),base:sum(s.times),raf:0};
+  renderTabs();renderHud();resetShip();
+  $("intro").hidden=true;$("game").hidden=false;$("giveup").hidden=false;disarm();
+  $("prompt").textContent=pr.q+".";
+  $("slots").innerHTML=[1,2,3,4,5].map(n=>`<li><b>${n}</b><span></span><em>+${PTS}</em></li>`).join("");
+  $("msg").textContent="";$("msg").className="msg";
+  const inp=$("answer");inp.disabled=false;inp.value="";inp.focus();
+  tick();
+}
+function tick(){
+  if(!run)return;const el=performance.now()-run.t0,left=total()-run.base-el;
+  $("timer").textContent=clock(left);$("timer").classList.toggle("danger",left<10000);
+  setShip((run.base+el)/total());
+  if(left<=0)return lose();
+  run.raf=requestAnimationFrame(tick);
+}
+
+function match(v){
+  const n=norm(v);if(!n)return -1;const A=run.pr.a;
+  for(let i=0;i<A.length;i++)if(A[i].keys.some(k=>k===n||k+"s"===n||k+"es"===n||k===n.replace(/s$/,"")))return i;
+  let best=-1,bd=9;
+  for(let i=0;i<A.length;i++)for(const k of A[i].keys){if(k.length<5)continue;const dd=lev(n,k),tol=k.length>=10?2:1;if(dd<=tol&&dd<bd){bd=dd;best=i}}
+  return best;
+}
+$("form").onsubmit=e=>{
+  e.preventDefault();if(!run)return;const inp=$("answer"),v=inp.value.trim();if(!v)return;
+  const i=match(v),msg=$("msg");
+  const bad=t=>{msg.textContent=t;msg.className="msg bad";inp.classList.remove("bad");void inp.offsetWidth;inp.classList.add("bad");inp.select()};
+  if(i<0)return bad(`“${v}” isn't on the manifest.`);
+  if(run.got.includes(i))return bad(`${run.pr.a[i].label} is already aboard.`);
+  run.got.push(i);inp.value="";msg.textContent=`${run.pr.a[i].label} · +${PTS}`;msg.className="msg good";
+  const li=$("slots").children[run.got.length-1];li.classList.add("filled");li.querySelector("span").textContent=run.pr.a[i].label;
+  renderHud();
+  if(run.got.length===5)endRound(false);
+};
+
+function disarm(){clearTimeout(armT);const b=$("giveup");b.classList.remove("arm");b.textContent="Give up"}
+$("giveup").onclick=()=>{if(!run)return;const b=$("giveup");
+  if(!b.classList.contains("arm")){b.classList.add("arm");b.textContent="Skip prompt?";armT=setTimeout(disarm,3000);return}
+  disarm();endRound(true)};
+
+function stop(){cancelAnimationFrame(run.raf);$("answer").disabled=true;$("giveup").hidden=true;stopped=true}
+function missed(pr,got){return pr.a.filter((_,i)=>!got.includes(i)).slice(0,6).map(a=>a.label).join(", ")}
+function endRound(gave){
+  const el=performance.now()-run.t0;stop();const s=S[mode],pr=run.pr,got=run.got;
+  s.times.push(el);s.pts.push(got.length*PTS);s.gave.push(gave);s.round++;run=null;
+  if(s.round>=5){s.status="won";finalize(s);save(mode);renderTabs();renderHud();
+    modal(`<p class="label">${MODES[mode].name} · crossing #${DAY}</p><h2>Safe harbour</h2>${tally(s)}<div class="row"><button class="btn big" data-a="share">Share</button><button class="btn quiet" data-a="close">Done</button></div>`,render);
+    submitScore(mode,s);return}
+  s.status="idle";save(mode);renderTabs();renderHud();
+  modal(`<p class="label">Round ${s.round} of 5</p><h2>${gave?"Prompt forfeited":"Iceberg avoided"}</h2><p>${gave?`Kept +${got.length*PTS}. Could have said: ${missed(pr,got)}`:`+${got.length*PTS} in ${fmt(el)}`}</p><div class="tally"><div><span class="label">Score</span><span>${sum(s.pts)}</span></div><div><span class="label">Clock paused</span><span>${clock(total()-sum(s.times))}</span></div></div><div class="row"><button class="btn big" data-a="next">Continue to Round ${s.round+1}</button></div>`,null,true);
+}
+function lose(){
+  stop();const s=S[mode],pr=run.pr,got=run.got;run=null;
+  s.status="lost";s.lostPts=got.length*PTS;s.score=sum(s.pts)+s.lostPts;s.mult=1;s.left=0;s.final=s.score;save(mode);
+  sinkT=performance.now();$("scene").classList.add("shake");setTimeout(()=>$("scene").classList.remove("shake"),600);
+  renderTabs();renderHud();
+  setTimeout(()=>modal(`<p class="label">Round ${s.round+1} of 5 · ${got.length}/5 named</p><h2>Iceberg, dead ahead</h2>${tally(s)}<p class="reveal">Could have said: ${missed(pr,got)}</p><div class="row"><button class="btn big" data-a="share">Share</button><button class="btn quiet" data-a="close">Close</button></div>`,render),1400);
+  submitScore(mode,s);
+}
+
+function modal(html,onClose,noEsc){
+  const dlg=$("modal");$("modalBody").innerHTML=html;
+  dlg.oncancel=e=>{if(noEsc)e.preventDefault()};
+  dlg.onclose=()=>{if(onClose)onClose()};
+  dlg.onclick=e=>{const a=e.target.dataset&&e.target.dataset.a;if(!a)return;
+    if(a==="share")return share();if(a==="next"){dlg.onclose=null;dlg.close();startRound()}else dlg.close()};
+  dlg.showModal();dlg.querySelector(".btn").focus();
+}
+function share(){
+  const s=S[mode],m=MODES[mode];
+  const row=[0,1,2,3,4].map(i=>i<s.times.length?(s.gave[i]?"🟧":"🟦"):s.status==="lost"&&i===s.round?"🧊":"⬛").join("");
+  const txt=`Titanic.io #${DAY} · ${m.name}\n🚢 ${row}\n${s.final??sum(s.pts)} pts${s.mult?` (×${s.mult.toFixed(2)})`:""}`;
+  (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{$("msg").textContent="Copied"},()=>prompt("Copy your result:",txt));
+}
+
+// Leaderboard hook: final score, multiplier and total time per finished mode. Wire to a backend later.
+function submitScore(m,s){/* fetch('/api/scores',{method:'POST',body:JSON.stringify({date:TODAY,mode:MODES[m].id,score:s.final,mult:s.mult,ms:sum(s.times)})}) */}
+
+// ---- Pixel scene (640x120 world, upscaled with crisp pixels) ----
+const W=640,H=120,HZ=80,cv=$("scene"),cx=cv.getContext("2d");
+const SKY=["#0b1433","#121c45","#1b2655","#273165","#373b74","#4d4580","#6a4f88","#8d5a8a","#b26787","#d47a84"];
+const SEA=["#1d3a63","#183257","#142a4c","#112441","#0e1f38","#0c1a30"];
+let shipP=0,stopped=false,sinkT=0;
+const sr=rng("scene"),STARS=[...Array(70)].map(()=>[sr()*W|0,sr()*50|0,sr()]);
+const CLOUD=[[6,4,14,4],[2,6,30,4],[10,1,8,4],[18,2,10,5],[0,8,38,3]];
+const CLOUDS=[...Array(9)].map((_,i)=>({x:sr()*W,y:4+sr()*36|0,s:.8+sr()*1.1,v:.6+sr()*1.4,far:i<3}));
+let smoke=[];
+const px=(x,y,w,h,c)=>{cx.fillStyle=c;cx.fillRect(x|0,y|0,w,h)};
+function poly(pts,c,dx=0,dy=0){ // scanline fill, no anti-aliasing
+  const ys=pts.map(p=>p[1]);cx.fillStyle=c;
+  for(let y=Math.min(...ys);y<Math.max(...ys);y++){const xs=[];
+    for(let i=0;i<pts.length;i++){const[a,b]=[pts[i],pts[(i+1)%pts.length]];
+      if((a[1]<=y&&b[1]>y)||(b[1]<=y&&a[1]>y))xs.push(a[0]+(y+.5-a[1])/(b[1]-a[1])*(b[0]-a[0]))}
+    xs.sort((m,n)=>m-n);for(let k=0;k<xs.length;k+=2)cx.fillRect(Math.round(xs[k])+dx,y+dy,Math.round(xs[k+1])-Math.round(xs[k]),1)}
+}
+// ship drawn once into its own tiny canvas so it can be tilted column-by-column
+const SC=document.createElement("canvas");SC.width=60;SC.height=26;
+(()=>{const g=SC.getContext("2d"),f=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(x,y,w,h)};
+  f(8,2,1,14,"#cfc8b6");f(52,1,1,15,"#cfc8b6");
+  [16,24,32,40].forEach(x=>{f(x,4,4,8,"#d99c45");f(x,4,4,2,"#16120e");f(x+3,6,1,6,"#a87332")});
+  f(13,12,32,3,"#ddd6c6");f(10,15,40,3,"#f4efe2");f(10,17,40,1,"#bdb5a3");
+  f(2,18,56,1,"#e8e1cf");
+  for(let y=19;y<26;y++){const l=2+Math.max(0,y-22),r=58-Math.max(0,y-21)*2;f(l,y,r-l,1,y>=24?"#a3302a":"#15191f")}
+  for(let x=9;x<54;x+=5)f(x,21,1,1,"#ffd36b");
+})();
+function drawShip(x,y,tilt,alpha){
+  cx.globalAlpha=alpha;
+  for(let i=0;i<60;i++)cx.drawImage(SC,i,0,1,26,x+i,y+Math.round((i-10)*tilt),1,26);
+  cx.globalAlpha=1;
+}
+const BERG=[[0,36],[9,15],[16,20],[25,0],[33,10],[42,7],[54,36]];
+function frame(now){
+  const t=now/1000;
+  SKY.forEach((c,i)=>px(0,i*8,W,8,c));
+  for(let i=1;i<SKY.length;i++)for(let x=(i%2);x<W;x+=2)px(x,i*8-1,1,1,SKY[i]); // dithered band edges
+  STARS.forEach(([x,y,k])=>{if(Math.sin(t*2+k*40)>-.6)px(x,y,1,1,k>.85?"#fff":"#c9d6f2")});
+  const M=262;px(M,14,10,10,"#f6eed2");px(M-2,16,14,6,"#f6eed2");px(M+2,12,6,14,"#f6eed2");px(M+3,16,2,2,"#e2d6b4");px(M+6,20,2,1,"#e2d6b4");
+  CLOUDS.forEach(c=>{c.x-=c.v*(c.far?.02:.04);if(c.x<-50)c.x=W+10;
+    CLOUD.forEach(([dx,dy,w,h])=>px(c.x+dx*c.s,c.y+dy*c.s,Math.ceil(w*c.s),Math.ceil(h*c.s),c.far?"#7a5f93":"#e9c9d8"));
+    CLOUD.forEach(([dx,dy,w,h])=>dy>=6&&px(c.x+dx*c.s,c.y+(dy+h-1)*c.s,Math.ceil(w*c.s),Math.ceil(c.s),c.far?"#634f80":"#b98fb4"))});
+  SEA.forEach((c,i)=>px(0,HZ+i*7,W,7,c));
+  for(let i=0;i<9;i++)px(264+((i*3)%7)-3+Math.round(Math.sin(t*3+i)),HZ+2+i*3,6-(i%3)*2,1,"#e9dcb4"); // moon reflection
+  for(let r=0;r<5;r++){const y=HZ+4+r*8,off=(t*(6+r*3))%24;for(let x=-24;x<W;x+=24)px(x+off+(r%2)*12,y,6,1,"#3b6a96")}
+  const by=HZ-33+Math.round(Math.sin(t*1.1+1)*1.2),bx=410;
+  poly(BERG,"#eaf8ff",bx,by);poly([[25,0],[33,10],[29,36],[22,36]],"#a9d8ee",bx,by);poly([[42,7],[54,36],[47,36]],"#c3e5f4",bx,by);poly([[9,15],[16,20],[12,36],[6,36]],"#d6eef8",bx,by);
+  px(bx+6,by+24,4,1,"#c3e5f4");px(bx+36,by+18,3,1,"#c3e5f4");px(bx+40,by+28,2,1,"#a9d8ee");
+  cx.globalAlpha=.22;poly([[-4,36],[58,36],[66,44],[50,48],[6,48],[-10,42]],"#a9d8ee",bx,by);cx.globalAlpha=1;
+  const sx=Math.round(175+(358-175)*shipP);let sy=HZ-20+Math.round(Math.sin(t*2)*1.2),tilt=0,al=1;
+  if(sinkT){const k=Math.min(1,(now-sinkT)/3200);tilt=k*.35;sy+=Math.round(k*k*26);al=1-k*.6}
+  if(!stopped&&Math.random()<.12){const f=[16,24,32,40][Math.random()*4|0];smoke.push({x:sx+f+1,y:sy+3,a:1})}
+  smoke=smoke.filter(p=>(p.x-=.25,p.y-=.12,p.a-=.012)>0);smoke.forEach(p=>{cx.globalAlpha=p.a*.7;px(p.x,p.y,2,2,"#c3cad8")});cx.globalAlpha=1;
+  cx.save();cx.beginPath();cx.rect(0,0,W,HZ+6);cx.clip();drawShip(sx,sy,tilt,al);cx.restore();
+  for(let x=0;x<W;x+=1)if((x+Math.floor(t*8))%9<5)px(x,HZ+6+Math.round(Math.sin(x/9+t*2)),1,1,"#2a5583"); // front swell over hull
+  px(0,HZ+7,W,1,"#1d3a63");
+  if(shipP>.7){cx.globalAlpha=(shipP-.7)/.3*.16;px(0,0,W,H,"#ff5a4e");cx.globalAlpha=1}
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// Fresh prompts from Wikidata, built daily by scripts/generate.py; built-in list is the fallback.
+fetch(`prompts/${TODAY}.json`,{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.modes&&j.modes.length===4)DAILY=j}).catch(()=>{}).finally(render);
+</script>
+</body>
+</html>

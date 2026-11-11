@@ -1,0 +1,16 @@
+name: Daily prompts
+on:
+  schedule: [{cron: "0 */6 * * *"}]   # every 6h: keeps today + next 2 days ready for every time zone
+  workflow_dispatch:
+permissions: {contents: write}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: python3 scripts/generate.py $(for i in 0 1 2; do date -u -d "+$i day" +%F; done)
+      - run: |
+          git config user.name "daily-prompts-bot"; git config user.email "actions@users.noreply.github.com"
+          git add prompts && git commit -m "Daily prompts" && git push || echo "nothing new"
