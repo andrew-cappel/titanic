@@ -208,9 +208,14 @@ const STOP=new Set(["the","of","and","in","on","at","for","to","de","la","le","e
 // Any word or two-word chunk of an answer counts on its own if it points to only that answer ("barn" -> Barn Owl).
 function parts(label){const out=new Set(cores(label)),w=norm(label).split(" ");
   w.forEach((x,i)=>{if(x.length>=3&&!STOP.has(x)&&!/^\d+$/.test(x))out.add(x);if(i&&!STOP.has(w[i-1])&&!STOP.has(x))out.add(w[i-1]+" "+x)});return[...out]}
-function withCores(a){const cnt={},full=new Set(a.flatMap(x=>x.keys));
-  a.forEach(x=>{x.c=parts(x.label).filter(k=>!x.keys.includes(k));x.c.forEach(k=>cnt[k]=(cnt[k]||0)+1)});
-  a.forEach(x=>{x.keys.push(...x.c.filter(k=>cnt[k]===1&&!full.has(k)));delete x.c});return a}
+// If a word fits several answers, it goes to the one where it is the biggest part of the name
+// ("legend" -> I Am Legend over The Legend of Bagger Vance); a true tie ("owl") counts for none.
+function withCores(a){const best={},full=new Set(a.flatMap(x=>x.keys));
+  a.forEach((x,i)=>{const n=norm(x.label).split(" ").filter(w=>w.length>=3&&!STOP.has(w)).length||1;
+    const len=norm(x.label).split(" ").length;
+    parts(x.label).filter(k=>!x.keys.includes(k)&&!full.has(k)).forEach(k=>{const sh=k.split(" ").length/n,b=best[k];
+      if(!b||sh>b.sh||(sh===b.sh&&len<b.len))best[k]={sh,i,len,tie:false};else if(sh===b.sh&&len===b.len&&b.i!==i)b.tie=true})});
+  Object.entries(best).forEach(([k,b])=>{if(!b.tie)a[b.i].keys.push(k)});return a}
 const promptsFor=m=>(DAILY?DAILY.modes[m]:order.slice(m*5,m*5+5).map(i=>P[i])).map(p=>{const ids=(p[4]||"").split(",");return{q:p[0],qid:p[2],body:p[3],a:withCores(p[1].split("|").map((e,k)=>{const al=e.split("/");return{label:p[3]?al[0]:title(al[0]),keys:al.map(norm),id:ids[k]}}))}});
 
 const KEY=m=>`titanic2:${TODAY}:${MODES[m].id}`;
