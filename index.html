@@ -417,7 +417,7 @@ sndLabel();$("snd").onclick=()=>{SFX.toggle();sndLabel();AMB.sync()};
 // ---- Ambience: waves, wind, seagulls and a distant sea bell (starts on your first click/key, follows ♪ On/Off) ----
 // Waves: "Oceanwavescrushing" by Luftrum (CC BY 3.0). Gulls: "European Herring Gull" by Sonothèque ADVL (CC0). Both via Wikimedia Commons.
 const AMB=(()=>{let c,master,started=false;const L=u=>fetch(u).then(r=>r.arrayBuffer()).then(b=>c.decodeAudioData(b));
-  function start(){if(started||!SFX.on)return;started=true;c=SFX.ctx();master=c.createGain();master.gain.setValueAtTime(0,c.currentTime);master.gain.linearRampToValueAtTime(1,c.currentTime+3);master.connect(c.destination);
+  function start(){if(started||!SFX.on)return;started=true;c=SFX.ctx();master=c.createGain();master.gain.value=0;master.connect(c.destination);if(c.state==="running")fade(1,2.5);c.addEventListener("statechange",()=>{if(c.state==="running"&&!document.hidden)fade(1,2.5)});c.resume().catch(()=>{});
     L("waves.wav").then(b=>{const s=c.createBufferSource(),g=c.createGain();s.buffer=b;s.loop=true;g.gain.value=.14;s.connect(g).connect(master);s.start()}).catch(()=>{});
     const nb=c.createBuffer(1,c.sampleRate*4,c.sampleRate),x=nb.getChannelData(0);for(let i=0;i<x.length;i++)x[i]=Math.random()*2-1;
     const ns=c.createBufferSource(),lp=c.createBiquadFilter(),wg=c.createGain(),lfo=c.createOscillator(),lg=c.createGain();ns.buffer=nb;ns.loop=true;lp.type="lowpass";lp.frequency.value=380;
@@ -427,9 +427,12 @@ const AMB=(()=>{let c,master,started=false;const L=u=>fetch(u).then(r=>r.arrayBu
     const bell=()=>{if(c.state==="running"){const t=c.currentTime,f=c.createBiquadFilter();f.type="lowpass";f.frequency.value=1600;f.connect(master);
       [[1,1],[2.76,.45],[5.4,.2],[8.9,.08]].forEach(([m,a])=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=330*m;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.03*a,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+4.5);o.connect(g).connect(f);o.start(t);o.stop(t+4.6)})}
       setTimeout(bell,20000+Math.random()*25000)};setTimeout(bell,10000)}
-  return{start,sync(){if(!master){if(SFX.on)start();return}master.gain.setTargetAtTime(SFX.on?1:0,c.currentTime,.3)}}})();
-["pointerdown","keydown"].forEach(e=>addEventListener(e,()=>AMB.start(),{once:true}));
-document.addEventListener("visibilitychange",()=>{if(!SFX.on)return;const x=SFX.ctx();document.hidden?x.suspend():x.resume()});
+  // smooth fades only: never cut the sound off abruptly
+  function fade(v,d){if(!master)return;const t=c.currentTime;master.gain.cancelScheduledValues(t);master.gain.setValueAtTime(master.gain.value,t);master.gain.linearRampToValueAtTime(SFX.on?v:0,t+d)}
+  return{start,fade,sync(){if(!master){if(SFX.on)start();return}fade(SFX.on?1:0,1.2)}}})();
+// play as soon as the game opens; if the browser holds sound until you interact, it fades in on your first touch, click or key
+AMB.start();["pointerdown","keydown","touchstart"].forEach(e=>addEventListener(e,()=>{const x=SFX.ctx();if(x.state!=="running")x.resume()},{passive:true}));
+document.addEventListener("visibilitychange",()=>{if(!SFX.on)return;const x=SFX.ctx();if(document.hidden){AMB.fade(0,.6);setTimeout(()=>{if(document.hidden)x.suspend()},700)}else{x.resume();AMB.fade(1,1.5)}});
 
 $("answer").addEventListener("keydown",e=>{if(e.key.length===1)SFX.click()});
 
