@@ -406,7 +406,7 @@ const SFX=(()=>{let ctx,on=true;try{on=localStorage.getItem("titanic:sound")!=="
     for(let i=0;i<x.length;i++)x[i]=(Math.random()*2-1)*(1-i/x.length);const n=c.createBufferSource(),fl=c.createBiquadFilter(),g=c.createGain();
     fl.type="lowpass";fl.frequency.value=700;g.gain.value=v;n.buffer=b;n.connect(fl).connect(g).connect(c.destination);n.start()};
   const seq=(ns,type="square",len=.14,gap=.09)=>ns.forEach((f,i)=>tone(f,len,type,.07,0,i*gap));
-  return{ctx:()=>ac(),get on(){return on},toggle(){on=!on;try{localStorage.setItem("titanic:sound",on?"on":"off")}catch(e){}if(on)tone(880,.08);return on},
+  return{ui:()=>{tone(1100,.04,"square",.03);tone(1480,.05,"square",.025,0,.035)},ctx:()=>ac(),get on(){return on},toggle(){on=!on;try{localStorage.setItem("titanic:sound",on?"on":"off")}catch(e){}if(on)tone(880,.08);return on},
     ok:()=>{tone(660,.07);tone(990,.12,"square",.07,0,.06)},bad:()=>tone(170,.22,"sawtooth",.05,-70),
     tick:()=>tone(1250,.035,"square",.035),click:()=>tone(1900,.012,"square",.012),
     start:()=>{tone(98,1,"sawtooth",.06,-6);tone(147,1,"sawtooth",.04,-8)},
@@ -431,6 +431,9 @@ const AMB=(()=>{let c,master,started=false;const L=u=>fetch(u).then(r=>r.arrayBu
   function fade(v,d){if(!master)return;const t=c.currentTime;master.gain.cancelScheduledValues(t);master.gain.setValueAtTime(master.gain.value,t);master.gain.linearRampToValueAtTime(SFX.on?v:0,t+d)}
   return{start,fade,sync(){if(!master){if(SFX.on)start();return}fade(SFX.on?1:0,1.2)}}})();
 // play as soon as the game opens; if the browser holds sound until you interact, it fades in on your first touch, click or key
+// ---- quick blip on every button/link; links fade the ambience out before leaving ----
+document.addEventListener("click",e=>{const el=e.target.closest("button,a");if(!el||el.id==="snd"||el.type==="submit"||el.disabled)return;SFX.ui();
+  if(el.tagName==="A"&&el.href&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&new URL(el.href).origin===location.origin){e.preventDefault();AMB.fade(0,.35);setTimeout(()=>{location.href=el.href},320)}},true);
 AMB.start();["pointerdown","keydown","touchstart"].forEach(e=>addEventListener(e,()=>{const x=SFX.ctx();if(x.state!=="running")x.resume()},{passive:true}));
 document.addEventListener("visibilitychange",()=>{if(!SFX.on)return;const x=SFX.ctx();if(document.hidden){AMB.fade(0,.6);setTimeout(()=>{if(document.hidden)x.suspend()},700)}else{x.resume();AMB.fade(1,1.5)}});
 
