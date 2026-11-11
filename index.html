@@ -24,7 +24,8 @@ button{font:inherit;color:inherit}
 .sub{color:var(--muted);font-size:12px;letter-spacing:.06em}
 .sub a{color:var(--gold)}
 @media (max-width:820px){.sky{padding-top:64px}}
-.arch{position:absolute;top:12px;left:12px;z-index:2;background:var(--panel);border:1.5px solid var(--line);border-radius:3px;color:var(--ink);font:700 10px var(--mono);letter-spacing:.2em;text-transform:uppercase;padding:7px 10px;cursor:pointer}
+.tl{position:absolute;top:12px;left:12px;z-index:2;display:flex;gap:6px}
+.arch{background:var(--panel);border:1.5px solid var(--line);border-radius:3px;color:var(--ink);font:700 10px var(--mono);letter-spacing:.2em;text-transform:uppercase;padding:7px 10px;cursor:pointer}
 .best{position:absolute;top:12px;right:12px;z-index:2;background:var(--panel);border:1.5px solid var(--gold);border-radius:3px;padding:5px 10px;text-align:right}
 .best .label{display:block;font-size:9px;letter-spacing:.2em}
 .best b{font:400 24px/1 var(--pixel);color:var(--gold)}
@@ -106,7 +107,7 @@ dialog .row{display:grid;gap:8px;margin-top:16px}
 </style>
 </head>
 <body>
-<button class="arch" id="archBtn">☰ Archive</button>
+<div class="tl"><button class="arch" id="archBtn">☰ Archive</button><button class="arch" id="snd" aria-pressed="true">♪ On</button></div>
 <div class="best" id="best" aria-live="polite"></div>
 <header class="sky">
   <h1 class="logo">TITANIC</h1>
@@ -287,12 +288,13 @@ function startRound(){
   $("prompt").textContent=pr.q+".";
   $("slots").innerHTML=[1,2,3,4,5].map(n=>`<li><b>${n}</b><span></span><em>+${PTS}</em></li>`).join("");
   $("msg").textContent="";$("msg").className="msg";
-  const inp=$("answer");inp.disabled=false;inp.value="";inp.focus();
+  const inp=$("answer");inp.disabled=false;inp.value="";inp.focus();SFX.start();
   tick();
 }
 function tick(){
   if(!run)return;const el=performance.now()-run.t0,left=total()-run.base-el;
   $("timer").textContent=clock(left);$("timer").classList.toggle("danger",left<10000);
+  const sec=Math.ceil(left/1000);if(left<10000&&sec!==run.lastSec){run.lastSec=sec;SFX.tick()}
   setShip((run.base+el)/total());
   if(left<=0)return lose();
   run.raf=requestAnimationFrame(tick);
@@ -310,13 +312,13 @@ function match(v){
 $("form").onsubmit=e=>{
   e.preventDefault();if(!run)return;const inp=$("answer"),v=inp.value.trim();if(!v)return;
   const i=match(v),msg=$("msg");
-  const bad=t=>{msg.textContent=t;msg.className="msg bad";inp.classList.remove("bad");void inp.offsetWidth;inp.classList.add("bad");inp.select()};
+  const bad=t=>{SFX.bad();msg.textContent=t;msg.className="msg bad";inp.classList.remove("bad");void inp.offsetWidth;inp.classList.add("bad");inp.select()};
   if(i<0)return run.pr.body?verify(v,run,bad):bad(`“${v}” isn't on the manifest.`);
   accept(i,bad);
 };
 function accept(i,bad){const inp=$("answer"),msg=$("msg");
   if(run.got.includes(i))return bad(`${run.pr.a[i].label} is already aboard.`);
-  run.got.push(i);inp.value="";msg.textContent=`${run.pr.a[i].label} · +${PTS}`;msg.className="msg good";
+  SFX.ok();run.got.push(i);inp.value="";msg.textContent=`${run.pr.a[i].label} · +${PTS}`;msg.className="msg good";
   const li=$("slots").children[run.got.length-1];li.classList.add("filled");li.querySelector("span").textContent=run.pr.a[i].label;
   renderHud();
   if(run.got.length===5)endRound(false);
@@ -352,7 +354,7 @@ function stop(){cancelAnimationFrame(run.raf);$("answer").disabled=true;$("giveu
 function missed(pr,got){return pr.a.filter((_,i)=>!got.includes(i)).slice(0,6).map(a=>a.label).join(", ")}
 function endRound(gave){
   const el=performance.now()-run.t0;stop();const s=S[mode],pr=run.pr,got=run.got;
-  s.times.push(el);s.pts.push(got.length*PTS);s.gave.push(gave);s.round++;run=null;
+  s.times.push(el);s.pts.push(got.length*PTS);s.gave.push(gave);s.round++;run=null;if(gave)SFX.giveup();else if(s.round>=5)SFX.win();else SFX.clear();
   if(s.round>=5){s.status="won";finalize(s);save(mode);renderTabs();renderHud();
     modal(`<p class="label">${MODES[mode].name} · crossing #${DAY}</p><h2>Safe harbour</h2>${tally(s)}<div class="row"><button class="btn big" data-a="share">Share</button><button class="btn quiet" data-a="close">Done</button></div>`,render);
     (saveBest(s),!ARCHIVE&&submitScore(mode,s));return}
@@ -361,7 +363,7 @@ function endRound(gave){
 }
 function lose(){
   stop();const s=S[mode],pr=run.pr,got=run.got;run=null;
-  s.status="lost";s.lostPts=got.length*PTS;s.score=sum(s.pts)+s.lostPts;s.mult=1;s.left=0;s.final=s.score;save(mode);
+  SFX.crash();s.status="lost";s.lostPts=got.length*PTS;s.score=sum(s.pts)+s.lostPts;s.mult=1;s.left=0;s.final=s.score;save(mode);
   sinkT=performance.now();$("scene").classList.add("shake");setTimeout(()=>$("scene").classList.remove("shake"),600);
   renderTabs();renderHud();
   setTimeout(()=>modal(`<p class="label">Round ${s.round+1} of 5 · ${got.length}/5 named</p><h2>Iceberg, dead ahead</h2>${tally(s)}<p class="reveal">Could have said: ${missed(pr,got)}</p><div class="row"><button class="btn big" data-a="share">Share</button><button class="btn quiet" data-a="close">Close</button></div>`,render),1400);
@@ -392,6 +394,26 @@ function openArchive(){
   }
   modal(`<p class="label">Every crossing so far</p><h2>Archive</h2><ul class="days">${out.join("")}</ul><div class="row"><button class="btn quiet" data-a="close">Close</button></div>`);
 }
+// ---- Chiptune sound effects (Web Audio, no files) ----
+const SFX=(()=>{let ctx,on=true;try{on=localStorage.getItem("titanic:sound")!=="off"}catch(e){}
+  const ac=()=>ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();
+  const tone=(f,d,type="square",v=.07,slide=0,delay=0)=>{if(!on)return;const c=ac(),t=c.currentTime+delay,o=c.createOscillator(),g=c.createGain();
+    o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),t+d);
+    g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(c.destination);o.start(t);o.stop(t+d+.02)};
+  const noise=(d,v=.3)=>{if(!on)return;const c=ac(),b=c.createBuffer(1,c.sampleRate*d,c.sampleRate),x=b.getChannelData(0);
+    for(let i=0;i<x.length;i++)x[i]=(Math.random()*2-1)*(1-i/x.length);const n=c.createBufferSource(),fl=c.createBiquadFilter(),g=c.createGain();
+    fl.type="lowpass";fl.frequency.value=700;g.gain.value=v;n.buffer=b;n.connect(fl).connect(g).connect(c.destination);n.start()};
+  const seq=(ns,type="square",len=.14,gap=.09)=>ns.forEach((f,i)=>tone(f,len,type,.07,0,i*gap));
+  return{get on(){return on},toggle(){on=!on;try{localStorage.setItem("titanic:sound",on?"on":"off")}catch(e){}if(on)tone(880,.08);return on},
+    ok:()=>{tone(660,.07);tone(990,.12,"square",.07,0,.06)},bad:()=>tone(170,.22,"sawtooth",.05,-70),
+    tick:()=>tone(1250,.035,"square",.035),click:()=>tone(1900,.012,"square",.012),
+    start:()=>{tone(98,1,"sawtooth",.06,-6);tone(147,1,"sawtooth",.04,-8)},
+    clear:()=>seq([523,659,784,1047]),win:()=>seq([523,659,784,1047,784,1047,1319],"square",.18,.12),
+    giveup:()=>seq([392,330,262],"triangle",.2,.13),crash:()=>{noise(1.4,.4);tone(90,1.6,"sawtooth",.09,-55)}}})();
+function sndLabel(){const b=$("snd");b.textContent=SFX.on?"♪ On":"♪ Off";b.setAttribute("aria-pressed",SFX.on)}
+sndLabel();$("snd").onclick=()=>{SFX.toggle();sndLabel()};
+$("answer").addEventListener("keydown",e=>{if(e.key.length===1)SFX.click()});
+
 $("archBtn").onclick=()=>{if(!run)openArchive()};
 
 // Leaderboard hook: final score, multiplier and total time per finished mode. Wire to a backend later.
