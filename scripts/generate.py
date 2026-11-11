@@ -28,7 +28,7 @@ T = {
    "Stephen King|Agatha Christie|Charles Dickens|Jane Austen|J. R. R. Tolkien|Roald Dahl|Dr. Seuss|Ernest Hemingway|Mark Twain|Leo Tolstoy|Terry Pratchett|Isaac Asimov|Neil Gaiman|Toni Morrison|Kurt Vonnegut|Jules Verne|H. G. Wells|Fyodor Dostoevsky|Virginia Woolf|John Steinbeck|Michael Crichton|Haruki Murakami|Arthur Conan Doyle"),
  "borders": ("Name five countries that border {}", "?x wdt:P47 ?s; wdt:P31 wd:Q6256.", 10,
    "Brazil|China|Russia|Germany|France|Austria|Tanzania|Democratic Republic of the Congo|Turkey|Serbia|Hungary|Zambia|Sudan|Niger|Mali|Iran|Afghanistan|India|Poland|Peru|Saudi Arabia|Ukraine|Switzerland|Colombia|Kazakhstan"),
- "games": ("Name five video games developed by {}", "?x wdt:P178 ?s; wdt:P31 wd:Q7889.", 8,
+ "games": ("Name five video games developed by {}", "?x wdt:P178 ?s; wdt:P31/wdt:P279* wd:Q7889.", 8,
    "Nintendo|Valve|Blizzard Entertainment|Naughty Dog|FromSoftware|BioWare|Bethesda Game Studios|Insomniac Games|Bungie|Capcom|Square Enix|Ubisoft Montreal|Rockstar North|Sonic Team|Game Freak|Konami|Epic Games|id Software|Retro Studios|Rare"),
  "award": ("Name five winners of the {}", "?x wdt:P166 ?s.", 20,
    "Nobel Prize in Literature|Nobel Peace Prize|Nobel Prize in Physics|Academy Award for Best Actor|Academy Award for Best Actress|Academy Award for Best Director|Ballon d'Or|Grammy Award for Best New Artist|Pulitzer Prize for Fiction|Turing Award|Fields Medal|Academy Award for Best Picture|Palme d'Or|Hugo Award for Best Novel|Presidential Medal of Freedom|Nobel Prize in Chemistry|Academy Award for Best Supporting Actress|Academy Award for Best Animated Feature"),
@@ -42,9 +42,9 @@ T = {
    "The Simpsons|Friends|Game of Thrones|Breaking Bad|The Office|The Lord of the Rings|Stranger Things|Seinfeld|Family Guy|Pride and Prejudice|Les Misérables|Hamlet|SpongeBob SquarePants|Twin Peaks|The Sopranos|Doctor Who|Star Trek: The Next Generation|One Piece|Naruto|Mad Men|Lost|Buffy the Vampire Slayer|South Park"),
  "endemic": ("Name five species found only in {}", "?x wdt:P183 ?s; wdt:P225 ?tn. FILTER(LCASE(?label) != LCASE(?tn))", 8,
    "Madagascar|Australia|New Zealand|Hawaii|Galápagos Islands|Japan|Cuba|Sri Lanka|Borneo|Tasmania|South Africa|New Guinea"),
- "cities": ("Name five cities in {}", "?x wdt:P31 wd:Q515; wdt:P17 ?s.", 40,
+ "cities": ("Name five cities in {}", "?x wdt:P17 ?s; wdt:P31/wdt:P279* wd:Q515.", 40,
    "Italy|Japan|Germany|Brazil|Spain|France|China|India|Mexico|Canada|Australia|Turkey|Egypt|Poland|Russia|United Kingdom|Argentina|Indonesia|Iran|Pakistan"),
- "tv_network": ("Name five TV series that aired on {}", "?x wdt:P449 ?s; wdt:P31 wd:Q5398426.", 20,
+ "tv_network": ("Name five TV series that aired on {}", "?x wdt:P449 ?s; wdt:P31/wdt:P279* wd:Q5398426.", 20,
    "HBO|NBC|CBS|American Broadcasting Company|Netflix|BBC One|Fox Broadcasting Company|AMC|Disney Channel|Cartoon Network|Nickelodeon|MTV|Comedy Central|FX|Showtime|The CW|Adult Swim|Prime Video|Hulu|Channel 4"),
  "studio": ("Name five films produced by {}", "?x wdt:P272 ?s; wdt:P31/wdt:P279* wd:Q11424.", 10,
    "Pixar|Walt Disney Animation Studios|DreamWorks Animation|Studio Ghibli|Marvel Studios|Lucasfilm|Blumhouse Productions|A24|Illumination|Aardman Animations|Legendary Entertainment|Amblin Entertainment|Working Title Films|Pixar Animation Studios"),
@@ -62,21 +62,21 @@ def sparql(body, subj, minsl):
     u = "https://www.wikidata.org/w/api.php?" + urllib.parse.urlencode({"action": "wbsearchentities", "search": subj, "language": "en", "limit": 1, "format": "json"})
     with urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": UA}), timeout=30) as r:
         hit = json.load(r).get("search")
-    if not hit: return []
+    if not hit: return None, []
     qid = hit[0]["id"]
-    return run(f"""SELECT ?x ?label ?sl ?human (GROUP_CONCAT(DISTINCT ?alt; separator="\\t") AS ?alts) WHERE {{
+    return qid, run(f"""SELECT ?x ?label ?sl ?human (GROUP_CONCAT(DISTINCT ?alt; separator="\\t") AS ?alts) WHERE {{
   VALUES ?s {{ wd:{qid} }}
   {body}
   ?x wikibase:sitelinks ?sl. FILTER(?sl >= {minsl})
   ?x rdfs:label ?label. FILTER(LANG(?label)="en")
   OPTIONAL {{ ?x skos:altLabel ?alt. FILTER(LANG(?alt)="en") }}
   BIND(EXISTS {{ ?x wdt:P31 wd:Q5 }} AS ?human)
-}} GROUP BY ?x ?label ?sl ?human ORDER BY DESC(?sl) LIMIT 150""")
+}} GROUP BY ?x ?label ?sl ?human ORDER BY DESC(?sl) LIMIT 400""")
 
 clean = lambda s: re.sub(r"\s+", " ", re.sub(r"[|/\t]", " ", re.sub(r"\s*\(.*?\)\s*", " ", s))).strip()
 
 def build(rows):
-    seen, out = set(), []
+    seen, out, ids = set(), [], []
     for r in rows:
         label = clean(r["label"]["value"])
         if not label or label.lower() in seen or re.match(r"^Q\d+$", label): continue
@@ -84,11 +84,12 @@ def build(rows):
         keys = [label] + [clean(a) for a in r.get("alts", {}).get("value", "").split("\t") if a and len(a) <= 40][:6]
         if r["human"]["value"] == "true" and " " in label: keys.append(label.split(" ")[-1])
         out.append([k for i, k in enumerate(keys) if k and k.lower() not in {x.lower() for x in keys[:i]}])
+        ids.append(r["x"]["value"].rsplit("/", 1)[1])
     # drop surname aliases that collide between answers
     last = {}
     for a in out:
         for k in a[1:]: last[k.lower()] = last.get(k.lower(), 0) + 1
-    return [[a[0]] + [k for k in a[1:] if last[k.lower()] == 1] for a in out]
+    return [[a[0]] + [k for k in a[1:] if last[k.lower()] == 1] for a in out], ids
 
 def make(day, used):
     rng = random.Random("titanic" + day)
@@ -99,12 +100,12 @@ def make(day, used):
         if len(got) == PER_DAY: break
         if count.get(t, 0) >= PER_TEMPLATE: continue
         text, body, minsl, _ = T[t]
-        try: rows = sparql(body, s, minsl)
+        try: qid, rows = sparql(body, s, minsl)
         except Exception as e: print("  skip", t, s, e); time.sleep(3); continue
-        ans = build(rows); time.sleep(1)
+        ans, ids = build(rows); time.sleep(1)
         print(f"  {len(ans):3d}  {text.format(s)}", flush=True)
         if len(ans) < MIN_ANSWERS: continue
-        got.append((len(ans), [text.format(s), "|".join("/".join(a) for a in ans)], f"{t}:{s}"))
+        got.append((len(ans), [text.format(s), "|".join("/".join(a) for a in ans), qid, body.split(" FILTER")[0], ",".join(ids)], f"{t}:{s}"))
         count[t] = count.get(t, 0) + 1
     if len(got) < PER_DAY: raise SystemExit(f"only {len(got)} prompts for {day}")
     got.sort(key=lambda g: -g[0])  # most answers = easiest
