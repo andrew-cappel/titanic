@@ -89,28 +89,54 @@ T = {
    "Nobel Prize in Literature|Nobel Peace Prize|Nobel Prize in Physics|Academy Award for Best Actor|Academy Award for Best Actress|Academy Award for Best Director|Ballon d'Or|Grammy Award for Best New Artist|Pulitzer Prize for Fiction|Turing Award|Fields Medal|Academy Award for Best Picture|Palme d'Or|Hugo Award for Best Novel|Nobel Prize in Chemistry"),
  "moons": ("space", "Name five moons of {}", "?x wdt:P397 ?s.", 3,
    "Jupiter|Saturn|Uranus|Neptune"),
+ "occupation": ("people", "Name five famous {}", "?x wdt:P106 ?s; wdt:P31 wd:Q5.", 15,
+   "conquistador=conquistadors|astronaut=astronauts|pirate=pirates|explorer=explorers|inventor=inventors|philosopher=philosophers|composer=composers|magician=magicians|gladiator=gladiators|samurai=samurai"),
+ "letters": ("words", "Name five countries with \"{}\" in their name", "?x wdt:P31 wd:Q6256; rdfs:label ?nm. filter(LANG(?nm)=\"en\" && CONTAINS(LCASE(?nm), \"{lit}\"))", 10,
+   "ia|an|land|stan|ar|ra|en|or|ma|ga", True),
+ "states": ("words", "Name five U.S. states that start with {}", "?x wdt:P31 wd:Q35657; rdfs:label ?nm. filter(LANG(?nm)=\"en\" && STRSTARTS(?nm, \"{lit}\"))", 5,
+   "M|N|I|A|C|W|O", True),
 }
-MIN_ANSWERS, PER_CATEGORY, PER_DAY = 8, 3, 20
+# Easy mode draws only from these well-known subjects (plus the letter games); the rest are ranked by fame.
+EASY = {
+ "films_star": "Tom Hanks|Leonardo DiCaprio|Will Smith|Tom Cruise|Jim Carrey|Adam Sandler|Dwayne Johnson",
+ "films_dir": "Steven Spielberg|Tim Burton", "studio": "Pixar Animation Studios=Pixar|Walt Disney Animation Studios|DreamWorks Animation|Marvel Studios",
+ "characters": "The Simpsons|Friends|SpongeBob SquarePants|Family Guy|The Office|Stranger Things",
+ "tv_network": "Nickelodeon|Disney Channel|Cartoon Network", "songs": "Michael Jackson|Taylor Swift|The Beatles|Queen band=Queen|Elvis Presley|ABBA",
+ "members": "Spice Girls|Backstreet Boys|NSYNC", "books": "Dr. Seuss|Roald Dahl|Stephen King", "games": "Nintendo",
+ "teams": "National Football League=NFL|National Basketball Association=NBA|Major League Baseball|Premier League|National Hockey League=NHL",
+ "players": "Manchester United F.C.=Manchester United|Real Madrid CF=Real Madrid|FC Barcelona|Los Angeles Lakers|FC Bayern Munich=Bayern Munich|Chicago Bulls|New York Yankees",
+ "borders": "China|Russia|Germany|France|Brazil", "continent": "Africa|Europe|Asia|South America",
+ "cities": "Italy|Germany|Spain|France|Japan|United States=the United States|Russia|United Kingdom=the United Kingdom|Canada|Australia|Mexico|India|China|Brazil",
+ "divisions": "Canada|Australia", "species": "Felidae=species of wild cat|Ursidae=species of bear|Selachimorpha=species of shark|Cetacea=species of whale or dolphin",
+ "breeds": "dog breed=dog breeds|cat breed=cat breeds|horse breed=horse breeds", "dishes": "Italy|Mexico|Japan|France",
+ "office": "President of the United States", "paintings": "Vincent van Gogh", "occupation": "conquistador=conquistadors|astronaut=astronauts|pirate=pirates|explorer=explorers",
+ "letters": "ia|an|land|stan|ar|ra|en|or|ma|ga", "states": "M|N|I|A|C|W|O",
+}
+MIN_ANSWERS, PER_CATEGORY, PER_DAY = 8, 2, 20
+
+QUERY = """SELECT ?x ?label ?sl ?human (GROUP_CONCAT(DISTINCT ?alt; separator="\\t") AS ?alts) WHERE {{
+  {values}
+  {body}
+  ?x wikibase:sitelinks ?sl. FILTER(?sl >= {minsl})
+  ?x rdfs:label ?label. FILTER(LANG(?label)="en")
+  OPTIONAL {{ ?x skos:altLabel ?alt. FILTER(LANG(?alt)="en") }}
+  BIND(EXISTS {{ ?x wdt:P31 wd:Q5 }} AS ?human)
+}} GROUP BY ?x ?label ?sl ?human ORDER BY DESC(?sl) LIMIT 400"""
 
 def run(q):
     req = urllib.request.Request(API + "?" + urllib.parse.urlencode({"query": q, "format": "json"}), headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=60) as r:
         return json.load(r)["results"]["bindings"]
 
-def sparql(body, subj, minsl):
+def sparql(body, subj, minsl, lit=False):
+    if lit:
+        return "", run(QUERY.format(values="", body=body.replace("{lit}", subj.lower() if "LCASE" in body else subj), minsl=minsl))
     u = "https://www.wikidata.org/w/api.php?" + urllib.parse.urlencode({"action": "wbsearchentities", "search": subj, "language": "en", "limit": 1, "format": "json"})
     with urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": UA}), timeout=30) as r:
         hit = json.load(r).get("search")
     if not hit: return None, []
     qid = hit[0]["id"]
-    return qid, run(f"""SELECT ?x ?label ?sl ?human (GROUP_CONCAT(DISTINCT ?alt; separator="\\t") AS ?alts) WHERE {{
-  VALUES ?s {{ wd:{qid} }}
-  {body}
-  ?x wikibase:sitelinks ?sl. FILTER(?sl >= {minsl})
-  ?x rdfs:label ?label. FILTER(LANG(?label)="en")
-  OPTIONAL {{ ?x skos:altLabel ?alt. FILTER(LANG(?alt)="en") }}
-  BIND(EXISTS {{ ?x wdt:P31 wd:Q5 }} AS ?human)
-}} GROUP BY ?x ?label ?sl ?human ORDER BY DESC(?sl) LIMIT 400""")
+    return qid, run(QUERY.format(values=f"VALUES ?s {{ wd:{qid} }}", body=body, minsl=minsl))
 
 clean = lambda s: re.sub(r"\s+", " ", re.sub(r"[|/\t]", " ", re.sub(r"\s*\(.*?\)\s*", " ", s))).strip()
 
@@ -130,45 +156,55 @@ def build(rows):
         for k in a[1:]: last[k.lower()] = last.get(k.lower(), 0) + 1
     return [[a[0]] + [k for k in a[1:] if last[k.lower()] == 1] for a in out], ids
 
-def arrange(got, rng):
-    """Easiest (most answers) first, then swap prompts until no difficulty repeats a topic."""
-    got = sorted(got, key=lambda g: -g[0]); modes = [got[i*5:i*5+5] for i in range(4)]
-    bad = lambda: sum(len(m) - len({x[1] for x in m}) for m in modes)
-    for _ in range(5000):
-        if not bad(): break
-        a = rng.randrange(3); b = a + 1 if rng.random() < .7 else rng.choice([k for k in range(4) if k != a])
-        i, j, before = rng.randrange(5), rng.randrange(5), bad()
-        modes[a][i], modes[b][j] = modes[b][j], modes[a][i]
-        if bad() > before: modes[a][i], modes[b][j] = modes[b][j], modes[a][i]
-    for m in modes: rng.shuffle(m)
-    return modes
+def fetch(t, s):
+    """One prompt: (answer count, category, fame, [question, answers, subject id, check body, answer ids], key) or None."""
+    v = T[t]; cat, text, body, minsl, lit = v[0], v[1], v[2], v[3], len(v) > 5
+    search, disp = (s.split("=") + [s])[:2]
+    try: qid, rows = sparql(body, search, minsl, lit)
+    except Exception as e: print("  skip", t, s, e, flush=True); time.sleep(3); return None
+    ans, ids = build(rows); time.sleep(1)
+    print(f"  {len(ans):3d}  {text.format(disp)}", flush=True)
+    if len(ans) < MIN_ANSWERS: return None
+    fame = sorted(int(r["sl"]["value"]) for r in rows[:10])[len(rows[:10]) // 2]  # median fame of top answers
+    chk = body.replace("{lit}", search.lower() if "LCASE" in body else search).split(" FILTER")[0]
+    return (len(ans), cat, fame, [text.format(disp), "|".join("/".join(a) for a in ans), qid, chk, ",".join(ids)], f"{t}:{s}")
+
+def pick(pool, n, cats, cc, tused):
+    """Round-robin over topics so no topic repeats within the n picked."""
+    got, mine = [], set()
+    while len(got) < n and any(pool[c] for c in cats if c not in mine and cc.get(c, 0) < PER_CATEGORY):
+        for c in cats:
+            if len(got) >= n or c in mine or cc.get(c, 0) >= PER_CATEGORY: continue
+            while pool[c]:
+                t, s = pool[c].pop()
+                if t in tused: continue
+                g = fetch(t, s)
+                if g: got.append(g); cc[c] = cc.get(c, 0) + 1; tused.add(t); mine.add(c); break
+        if len(mine) == len(cats): mine = set()  # allow a second round of topics if needed
+    return got
 
 def make(day, used):
     rng = random.Random("titanic" + day)
-    pool = [(t, s) for t, v in T.items() for s in v[4].split("|") if f"{t}:{s}" not in used]
-    rng.shuffle(pool)
+    easy = {f"{t}:{s}" for t, v in EASY.items() for s in v.split("|")}
+    allp = [(t, s) for t, v in T.items() for s in v[4].split("|") if f"{t}:{s}" not in used]
+    rng.shuffle(allp)
     cats = sorted({v[0] for v in T.values()}); rng.shuffle(cats)
-    bycat = {c: [p for p in pool if T[p[0]][0] == c] for c in cats}
-    got, cc, tused = [], {}, set()
-    while len(got) < PER_DAY and any(bycat[c] and cc.get(c, 0) < PER_CATEGORY for c in cats):
-        for c in cats:  # round-robin over topics so the day is spread across many of them
-            if len(got) >= PER_DAY or cc.get(c, 0) >= PER_CATEGORY: continue
-            while bycat[c]:
-                t, s = bycat[c].pop()
-                if t in tused: continue
-                cat, text, body, minsl, _ = T[t]
-                search, disp = (s.split("=") + [s])[:2]
-                try: qid, rows = sparql(body, search, minsl)
-                except Exception as e: print("  skip", t, s, e, flush=True); time.sleep(3); continue
-                ans, ids = build(rows); time.sleep(1)
-                print(f"  {len(ans):3d}  {text.format(disp)}", flush=True)
-                if len(ans) < MIN_ANSWERS: continue
-                got.append((len(ans), cat, [text.format(disp), "|".join("/".join(a) for a in ans), qid, body.split(" FILTER")[0], ",".join(ids)], f"{t}:{s}"))
-                cc[c] = cc.get(c, 0) + 1; tused.add(t); break
-    if len(got) < PER_DAY: raise SystemExit(f"only {len(got)} prompts for {day}")
-    used.extend(g[3] for g in got)
-    modes = arrange(got, rng)
-    return {"date": day, "source": "Wikidata (CC0)", "modes": [[g[2] for g in m] for m in modes]}
+    split = lambda e: {c: [p for p in allp if T[p[0]][0] == c and (f"{p[0]}:{p[1]}" in easy) == e] for c in cats}
+    cc, tused = {}, set()
+    first = pick(split(True), 5, cats, cc, tused)                     # Easy: familiar subjects only
+    rest = pick(split(False), PER_DAY - 5, cats, cc, tused)
+    if len(first) < 5 or len(rest) < PER_DAY - 5: raise SystemExit(f"not enough prompts for {day}")
+    used.extend(g[4] for g in first + rest)
+    rest.sort(key=lambda g: -g[2])                                    # most famous answers = Medium
+    modes = [first] + [rest[i*5:i*5+5] for i in range(3)]
+    bad = lambda: sum(len(m) - len({x[1] for x in m}) for m in modes[1:])
+    for _ in range(5000):                                             # swap until no difficulty repeats a topic
+        if not bad(): break
+        a = rng.randrange(1, 3); b = a + 1; i, j, before = rng.randrange(5), rng.randrange(5), bad()
+        modes[a][i], modes[b][j] = modes[b][j], modes[a][i]
+        if bad() > before: modes[a][i], modes[b][j] = modes[b][j], modes[a][i]
+    for m in modes: rng.shuffle(m)
+    return {"date": day, "source": "Wikidata (CC0)", "modes": [[g[3] for g in m] for m in modes]}
 
 def main():
     OUT.mkdir(exist_ok=True)
