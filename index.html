@@ -432,7 +432,7 @@ const AMB=(()=>{let c,master,started=false;const L=u=>fetch(u).then(r=>r.arrayBu
   return{start,fade,sync(){if(!master){if(SFX.on)start();return}fade(SFX.on?1:0,1.2)}}})();
 // play as soon as the game opens; if the browser holds sound until you interact, it fades in on your first touch, click or key
 // ---- quick blip on every button/link; links fade the ambience out before leaving ----
-document.addEventListener("click",e=>{const el=e.target.closest("button,a");if(!el||el.id==="snd"||el.type==="submit"||el.disabled)return;SFX.ui();
+document.addEventListener("click",e=>{const el=e.target.closest("button,a");if(!el||el.id==="snd"||(el.form&&el.type==="submit")||el.disabled)return;SFX.ui();
   if(el.tagName==="A"&&el.href&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&new URL(el.href).origin===location.origin){e.preventDefault();AMB.fade(0,.35);setTimeout(()=>{location.href=el.href},320)}},true);
 AMB.start();["pointerdown","keydown","touchstart"].forEach(e=>addEventListener(e,()=>{const x=SFX.ctx();if(x.state!=="running")x.resume()},{passive:true}));
 document.addEventListener("visibilitychange",()=>{if(!SFX.on)return;const x=SFX.ctx();if(document.hidden){AMB.fade(0,.6);setTimeout(()=>{if(document.hidden)x.suspend()},700)}else{x.resume();AMB.fade(1,1.5)}});
