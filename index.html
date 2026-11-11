@@ -22,6 +22,14 @@ button{font:inherit;color:inherit}
 .logo{font:400 clamp(64px,15vw,120px)/.8 var(--pixel);letter-spacing:.06em;color:#fff;text-shadow:4px 0 var(--pink),-4px 0 var(--line)}
 .tag{font:700 11px var(--mono);letter-spacing:.42em;color:var(--line);text-transform:uppercase;margin:10px 0 4px}
 .sub{color:var(--muted);font-size:12px;letter-spacing:.06em}
+.sub a{color:var(--gold)}
+.arch{position:absolute;top:12px;left:12px;z-index:2;background:var(--panel);border:1.5px solid var(--line);border-radius:3px;color:var(--ink);font:700 10px var(--mono);letter-spacing:.2em;text-transform:uppercase;padding:7px 10px;cursor:pointer}
+.arch:hover{background:rgba(95,211,255,.18)}
+.days{list-style:none;padding:0;margin:14px 0 0;max-height:52vh;overflow:auto;text-align:left;display:grid;gap:6px}
+.days a{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;border:1.5px solid var(--line-dim);border-radius:3px;color:var(--ink);text-decoration:none;font-size:12px}
+.days a:hover,.days a.on{border-color:var(--line);background:rgba(95,211,255,.08)}
+.days b{font:400 22px/1 var(--pixel);color:var(--gold);margin-right:8px}
+.days span:last-child{white-space:nowrap;font:400 18px/1 var(--pixel);letter-spacing:.12em;color:var(--muted)}
 .scene{display:block;width:100%;height:clamp(150px,37.5vw,360px);object-fit:cover;object-position:50% 100%;image-rendering:pixelated;background:#0b1433}
 .scene.shake{animation:shake .5s}
 @keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
@@ -93,6 +101,7 @@ dialog .row{display:grid;gap:8px;margin-top:16px}
 </style>
 </head>
 <body>
+<button class="arch" id="archBtn">☰ Archive</button>
 <header class="sky">
   <h1 class="logo">TITANIC</h1>
   <p class="tag">the daily crossing</p>
@@ -180,9 +189,11 @@ const clock=ms=>{const t=Math.max(0,Math.ceil(ms/1000));return Math.floor(t/60)+
 const fmt=ms=>{const s=ms/1000;return Math.floor(s/60)+":"+(s%60).toFixed(1).padStart(4,"0")};
 const sum=a=>a.reduce((x,y)=>x+y,0);
 
-const d=new Date(Date.now()-2*36e5),TODAY=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const iso=x=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`,REAL=iso(new Date(Date.now()-2*36e5)),LAUNCH="2026-11-10";
+// ?day=YYYY-MM-DD replays a past day from the archive (never a future one)
+const qd=new URLSearchParams(location.search).get("day"),TODAY=qd&&/^\d{4}-\d\d-\d\d$/.test(qd)&&qd<REAL&&qd>=LAUNCH?qd:REAL,ARCHIVE=TODAY!==REAL,d=new Date(TODAY+"T12:00");
 const DAY=Math.floor((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-Date.UTC(2026,0,1))/864e5)+1;
-$("sub").textContent=`5 prompts · 5 answers each · one clock · crossing #${DAY}`;
+$("sub").innerHTML=ARCHIVE?`Archive · crossing #${DAY} · <a href="./">back to today</a>`:`5 prompts · 5 answers each · one clock · crossing #${DAY}`;
 $("crossing").textContent=d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
 function rng(str){let h=1779033703^str.length;for(const c of str){h=Math.imul(h^c.charCodeAt(0),3432918353);h=h<<13|h>>>19}return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296}}
 const order=(()=>{const r=rng("titanic"+TODAY),a=P.map((_,i)=>i);for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a})();
@@ -307,7 +318,7 @@ function endRound(gave){
   s.times.push(el);s.pts.push(got.length*PTS);s.gave.push(gave);s.round++;run=null;
   if(s.round>=5){s.status="won";finalize(s);save(mode);renderTabs();renderHud();
     modal(`<p class="label">${MODES[mode].name} · crossing #${DAY}</p><h2>Safe harbour</h2>${tally(s)}<div class="row"><button class="btn big" data-a="share">Share</button><button class="btn quiet" data-a="close">Done</button></div>`,render);
-    submitScore(mode,s);return}
+    if(!ARCHIVE)submitScore(mode,s);return}
   s.status="idle";save(mode);renderTabs();renderHud();
   modal(`<p class="label">Round ${s.round} of 5</p><h2>${gave?"Prompt forfeited":"Iceberg avoided"}</h2><p>${gave?`Kept +${got.length*PTS}. Could have said: ${missed(pr,got)}`:`+${got.length*PTS} in ${fmt(el)}`}</p><div class="tally"><div><span class="label">Score</span><span>${sum(s.pts)}</span></div><div><span class="label">Clock paused</span><span>${clock(total()-sum(s.times))}</span></div></div><div class="row"><button class="btn big" data-a="next">Continue to Round ${s.round+1}</button></div>`,null,true);
 }
@@ -334,6 +345,17 @@ function share(){
   const txt=`Titanic.io #${DAY} · ${m.name}\n🚢 ${row}\n${s.final??sum(s.pts)} pts${s.mult?` (×${s.mult.toFixed(2)})`:""}`;
   (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{$("msg").textContent="Copied"},()=>prompt("Copy your result:",txt));
 }
+
+function openArchive(){
+  const out=[];
+  for(let x=new Date(REAL+"T12:00");iso(x)>=LAUNCH;x.setDate(x.getDate()-1)){
+    const day=iso(x),n=Math.floor((Date.UTC(x.getFullYear(),x.getMonth(),x.getDate())-Date.UTC(2026,0,1))/864e5)+1;
+    const marks=MODES.map(m=>{let v=null;try{v=JSON.parse(localStorage.getItem(`titanic2:${day}:${m.id}`))}catch(e){}return m.name[0]+(v&&v.status==="won"?"✓":v&&v.status==="lost"?"✕":"·")}).join(" ");
+    out.push(`<li><a href="${day===REAL?"./":"?day="+day}" class="${day===TODAY?"on":""}"><span><b>#${n}</b>${x.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}${day===REAL?" · today":""}</span><span>${marks}</span></a></li>`);
+  }
+  modal(`<p class="label">Every crossing so far</p><h2>Archive</h2><ul class="days">${out.join("")}</ul><div class="row"><button class="btn quiet" data-a="close">Close</button></div>`);
+}
+$("archBtn").onclick=()=>{if(!run)openArchive()};
 
 // Leaderboard hook: final score, multiplier and total time per finished mode. Wire to a backend later.
 function submitScore(m,s){/* fetch('/api/scores',{method:'POST',body:JSON.stringify({date:TODAY,mode:MODES[m].id,score:s.final,mult:s.mult,ms:sum(s.times)})}) */}
