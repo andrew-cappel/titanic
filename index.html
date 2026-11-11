@@ -254,11 +254,13 @@ function tick(){
   run.raf=requestAnimationFrame(tick);
 }
 
+// sequel numbers must match exactly: "Toy Story 3" is never a typo of "Toy Story 2"
+const sig=t=>(t.match(/\d+|\b[ivx]+\b/g)||[]).join(",");
 function match(v){
   const n=norm(v);if(!n)return -1;const A=run.pr.a;
   for(let i=0;i<A.length;i++)if(A[i].keys.some(k=>k===n||k+"s"===n||k+"es"===n||k===n.replace(/s$/,"")))return i;
   let best=-1,bd=9;
-  for(let i=0;i<A.length;i++)for(const k of A[i].keys){if(k.length<5)continue;const dd=lev(n,k),tol=k.length>=10?2:1;if(dd<=tol&&dd<bd){bd=dd;best=i}}
+  for(let i=0;i<A.length;i++)for(const k of A[i].keys){if(k.length<5||sig(k)!==sig(n))continue;const dd=lev(n,k),tol=k.length>=10?2:1;if(dd<=tol&&dd<bd){bd=dd;best=i}}
   return best;
 }
 $("form").onsubmit=e=>{
