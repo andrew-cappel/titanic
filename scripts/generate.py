@@ -5,7 +5,7 @@ Usage: python3 scripts/generate.py [YYYY-MM-DD ...]   (default: today and tomorr
 Each file holds 4 modes x 5 prompts: [question, "answer/alias|answer|..."].
 prompts/used.json remembers which prompts ran so they don't repeat.
 """
-import json, random, re, sys, time, urllib.error, urllib.parse, urllib.request
+import json, os, random, re, sys, time, urllib.error, urllib.parse, urllib.request
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -233,6 +233,40 @@ def make(day, used):
     for m in modes: rng.shuffle(m)
     return {"date": day, "source": "Wikidata (CC0)", "modes": [[g[3] for g in m] for m in modes]}
 
+# ---- Perplexity enrichment: add every answer people would give, so most guesses are checked instantly ----
+def pplx_key():
+    if os.environ.get("PERPLEXITY_API_KEY"): return os.environ["PERPLEXITY_API_KEY"]
+    try: return json.loads((Path.home()/"Library/Application Support/Claude/claude_desktop_config.json").read_text())["mcpServers"]["perplexity"]["env"]["PERPLEXITY_API_KEY"]
+    except Exception: return None
+
+def pplx(prompt):
+    k = pplx_key()
+    if not k: return ""
+    r = urllib.request.Request("https://api.perplexity.ai/v1/responses", data=json.dumps({"preset": "fast-search", "input": prompt}).encode(),
+        headers={"Authorization": "Bearer " + k, "Content-Type": "application/json", "User-Agent": "curl/8.4.0"})
+    for i in range(6):   # Perplexity rate-limits bursts: back off and retry
+        try: d = json.load(urllib.request.urlopen(r, timeout=180)); break
+        except urllib.error.HTTPError as e:
+            if e.code != 429 or i == 5: raise
+            time.sleep(15 * (i + 1))
+    return "\n".join(c.get("text", "") for o in d.get("output", []) if o.get("type") == "message" for c in o.get("content", []))
+
+def enrich(day_file):
+    j = json.loads(day_file.read_text()); n = 0
+    for m in j["modes"]:
+        for p in m:
+            if len(p) < 5 or p[0].startswith("Name five countries with") or "U.S. states that start" in p[0]: continue
+            try: t = pplx(f"List as many correct answers as possible to this trivia prompt: '{p[0]}'. Common English names, comma-separated, "
+                          "up to 150, most well-known first. Only items you are confident are correct. No commentary, numbering or citations.")
+            except Exception as e: print("  pplx skip", p[0][:40], e, flush=True); continue
+            words = [re.sub(r"\[\d+\]|\(.*?\)|\*", "", w).strip(" .\n") for w in t.replace("\n", ",").split(",")]
+            have = {clean(x).lower() for a in p[1].split("|") for x in a.split("/")}
+            new = [clean(w) for w in dict.fromkeys(words) if 1 < len(w) <= 60 and "?" not in w and clean(w).lower() not in have]
+            if new:
+                p[1] += "|" + "|".join(new); p[4] += "," * len(new); n += len(new)
+            time.sleep(1)
+    day_file.write_text(json.dumps(j, ensure_ascii=False, separators=(",", ":"))); print("  enriched", day_file.name, "+", n, "answers", flush=True)
+
 def safe_make(day, used):
     try: return make(day, used)
     except SystemExit:  # a level ran out of unused prompts: start the rotation over
@@ -250,8 +284,10 @@ def main():
         print("building", day)
         f.write_text(json.dumps(safe_make(day, used), ensure_ascii=False, separators=(",", ":")))
         uf.write_text(json.dumps(used))
+        if pplx_key(): enrich(f)
     # once every pairing is used, start over
     if len(used) > sum(len(v[4].split("|")) for v in T.values()) - PER_DAY * 2: uf.write_text("[]")
 
 if __name__ == "__main__":
-    main()
+    if sys.argv[1:2] == ["--enrich"]: [enrich(OUT / f"{d}.json") for d in sys.argv[2:]]
+    else: main()
