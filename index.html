@@ -108,7 +108,7 @@ dialog .row{display:grid;gap:8px;margin-top:16px}
 </style>
 </head>
 <body>
-<div class="tl"><a class="arch" href="/" title="Back to TheGauntlet">◂ Home</a><button class="arch" id="archBtn">☰ Archive</button><button class="arch" id="snd" aria-pressed="true">♪ On</button></div>
+<div class="tl"><a class="arch" href="/" title="Back to TheGauntlet">◂ Home</a><button class="arch" id="snd" aria-pressed="true">♪ On</button></div>
 <div class="best" id="best" aria-live="polite"></div>
 <header class="sky">
   <h1 class="logo">TITANIC</h1>
@@ -387,15 +387,6 @@ function share(){
   (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{$("msg").textContent="Copied"},()=>prompt("Copy your result:",txt));
 }
 
-function openArchive(){
-  const out=[];
-  for(let x=new Date(REAL+"T12:00");iso(x)>=LAUNCH;x.setDate(x.getDate()-1)){
-    const day=iso(x),n=Math.floor((Date.UTC(x.getFullYear(),x.getMonth(),x.getDate())-Date.UTC(2026,0,1))/864e5)+1;
-    const marks=MODES.map(m=>{let v=null;try{v=JSON.parse(localStorage.getItem(`titanic2:${day}:${m.id}`))}catch(e){}return m.name[0]+(v&&v.status==="won"?"✓":v&&v.status==="lost"?"✕":"·")}).join(" ");
-    out.push(`<li><a href="${day===REAL?"./":"?day="+day}" class="${day===TODAY?"on":""}"><span><b>#${n}</b>${x.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}${day===REAL?" · today":""}</span><span>${marks}</span></a></li>`);
-  }
-  modal(`<p class="label">Every crossing so far</p><h2>Archive</h2><ul class="days">${out.join("")}</ul><div class="row"><button class="btn quiet" data-a="close">Close</button></div>`);
-}
 // ---- Chiptune sound effects (Web Audio, no files) ----
 const SFX=(()=>{let ctx,on=true;try{on=localStorage.getItem("titanic:sound")!=="off"}catch(e){}
   const ac=()=>ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();
@@ -441,7 +432,7 @@ document.addEventListener("visibilitychange",()=>{if(!SFX.on)return;const x=SFX.
 
 $("answer").addEventListener("keydown",e=>{if(e.key.length===1)SFX.click()});
 
-$("archBtn").onclick=()=>{if(!run)openArchive()};
+
 
 // Leaderboard hook: final score, multiplier and total time per finished mode. Wire to a backend later.
 function submitScore(m,s){/* fetch('/api/scores',{method:'POST',body:JSON.stringify({date:TODAY,mode:MODES[m].id,score:s.final,mult:s.mult,ms:sum(s.times)})}) */}
