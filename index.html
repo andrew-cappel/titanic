@@ -363,9 +363,6 @@ const HEADS=[...Array(9)].map((_,i)=>({x:27+i*5+(i%2),ph:i*2.3}));
 function paintShip(t,lights){
   const f=(x,y,w,h,c)=>{sg.fillStyle=c;sg.fillRect(x,y,w,h)};
   sg.clearRect(0,0,SW,SH);
-  // masts + aerial wire
-  for(let y=0;y<27;y++)f(88+(y<9?1:0),y,1,1,"#8a8172");for(let y=2;y<22;y++)f(14,y,1,1,"#8a8172");
-  for(let x=15;x<88;x+=2)f(x,1+Math.round((x-15)/73),1,1,"#5d5a55");
   // funnels: lit side, body, shadow side, black tops, slight rake
   FUN.forEach(x=>{for(let y=4;y<18;y++){const o=-Math.floor((17-y)/7);f(x+o,y,5,1,"#cf9a48");f(x+o,y,1,1,"#ecbf72");f(x+o+4,y,1,1,"#9b6c2c");if(y<7)f(x+o,y,5,1,y===4?"#2a2622":"#141210")}});
   // boat deck (upper superstructure) with lifeboats and davits
