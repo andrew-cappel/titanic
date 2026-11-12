@@ -190,7 +190,9 @@ const P=[
 ];
 const $=id=>document.getElementById(id);
 const norm=s=>s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/&/g," and ").replace(/['’.]/g,"").replace(/[-_\/,]/g," ").replace(/[^a-z0-9+# ]/g,"").replace(/\s+/g," ").trim().replace(/^(the|a|an) /,"").replace(/ (river|ocean|sea)$/,"");
-const lev=(a,b)=>{if(Math.abs(a.length-b.length)>2)return 9;let p=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){const c=[i];for(let j=1;j<=b.length;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[b.length]};
+const lev=(a,b)=>{if(Math.abs(a.length-b.length)>3)return 9;const d=[];for(let i=0;i<=a.length;i++){d[i]=[i];for(let j=1;j<=b.length;j++)d[i][j]=i?Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1),i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1]?d[i-2][j-2]+1:9):j}return d[a.length][b.length]};   // typos, incl. swapped letters
+const TOL=(a,b)=>{const m=Math.min(a.length,b.length);return m<4?0:m<9?1:m<13?2:3};
+const near=(n,k)=>n[0]===k[0]&&Math.min(lev(n,k),lev(n.replace(/ /g,""),k.replace(/ /g,"")))<=TOL(n,k);
 const CAPS=new Set(["bmw","gmc","byd","vw","bs","sql","php","k2","vb","f#","c#","c++","c","r"]);
 const SMALL=new Set(["a","an","and","the","of","in","is","on","to","at","da","de","del","della","van","von","di","d'este","de'","n"]);
 const title=s=>CAPS.has(s)?s.toUpperCase():s.split(" ").map((w,i)=>i&&SMALL.has(w)?w:w.charAt(0).toUpperCase()+w.slice(1)).join(" ").replace(/-([a-z])/g,(m,c)=>"-"+c.toUpperCase());
@@ -225,7 +227,7 @@ function withCores(a){const best={},full=new Set(a.flatMap(x=>x.keys));
     parts(x.label).filter(k=>!x.keys.includes(k)&&!full.has(k)).forEach(k=>{const sh=k.split(" ").length/n,b=best[k];
       if(!b||sh>b.sh||(sh===b.sh&&len<b.len))best[k]={sh,i,len,tie:false};else if(sh===b.sh&&len===b.len&&b.i!==i)b.tie=true})});
   Object.entries(best).forEach(([k,b])=>{if(!b.tie)a[b.i].keys.push(k)});return a}
-const promptsFor=m=>(DAILY?DAILY.modes[m]:order.slice(m*5,m*5+5).map(i=>P[i])).map(p=>{const ids=(p[4]||"").split(",");return{q:p[0],qid:p[2],body:p[3],a:withCores(p[1].split("|").map((e,k)=>{const al=e.split("/");return{label:p[3]?al[0]:title(al[0]),keys:al.map(norm),id:ids[k]}}))}});
+const promptsFor=m=>(DAILY?DAILY.modes[m]:order.slice(m*5,m*5+5).map(i=>P[i])).map(p=>{const ids=(p[4]||"").split(",");return{q:p[0],qid:p[2],body:p[3],no:new Set([...(p[5]||"").split(","),...(p[6]||"").split("|").map(norm)].filter(Boolean)),a:withCores(p[1].split("|").map((e,k)=>{const al=e.split("/");return{label:p[3]?al[0]:title(al[0]),keys:al.map(norm),id:ids[k]}}))}});
 
 const KEY=m=>`titanic2:${TODAY}:${MODES[m].id}`;
 // Testing helper: visiting with ?reset clears today's progress so the day can be replayed.
@@ -308,7 +310,7 @@ function match(v){
   const n=norm(v);if(!n)return -1;const A=run.pr.a;
   for(let i=0;i<A.length;i++)if(A[i].keys.some(k=>k===n||k+"s"===n||k+"es"===n||k===n.replace(/s$/,"")))return i;
   let best=-1,bd=9;
-  for(let i=0;i<A.length;i++)for(const k of A[i].keys){if(k.length<5||sig(k)!==sig(n))continue;const dd=lev(n,k),tol=k.length>=10?2:1;if(dd<=tol&&dd<bd){bd=dd;best=i}}
+  for(let i=0;i<A.length;i++)for(const k of A[i].keys){if(sig(k)!==sig(n)||!near(n,k))continue;const dd=lev(n,k);if(dd<bd){bd=dd;best=i}}
   return best;
 }
 $("form").onsubmit=e=>{
@@ -340,7 +342,7 @@ async function verify(v,r,bad){
     const j={results:{bindings:await sp(q)}};
     const rows=j.results.bindings.map(b=>({id:b.x.value.split("/").pop(),label:(b.xl?b.xl.value:v).replace(/^[a-z]/,c=>c.toUpperCase())}));
     const hit=found.map(x=>rows.find(y=>y.id===x.id)).find(Boolean)||rows[0];
-    if(run!==r)return;if(!hit)throw 0;
+    if(run!==r)return;if(!hit||r.pr.no.has(hit.id)||r.pr.no.has(norm(v))||r.pr.no.has(norm(hit.label)))throw 0;   // fact-checked out (e.g. sea-only borders)
     let i=r.pr.a.findIndex(a=>a.id===hit.id);
     if(i<0){r.pr.a.push({label:hit.label,keys:[norm(hit.label)],id:hit.id});i=r.pr.a.length-1}
     accept(i,bad);

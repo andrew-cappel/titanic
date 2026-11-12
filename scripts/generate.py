@@ -284,7 +284,9 @@ def main():
         print("building", day)
         f.write_text(json.dumps(safe_make(day, used), ensure_ascii=False, separators=(",", ":")))
         uf.write_text(json.dumps(used))
-        if pplx_key(): enrich(f)
+        if pplx_key():
+            enrich(f)
+            import factcheck; factcheck.titanic(f)   # strict pass: drop wrong answers and block them from the live check
     # once every pairing is used, start over
     if len(used) > sum(len(v[4].split("|")) for v in T.values()) - PER_DAY * 2: uf.write_text("[]")
 
