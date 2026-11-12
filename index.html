@@ -198,7 +198,7 @@ const clock=ms=>{const t=Math.max(0,Math.ceil(ms/1000));return Math.floor(t/60)+
 const fmt=ms=>{const s=ms/1000;return Math.floor(s/60)+":"+(s%60).toFixed(1).padStart(4,"0")};
 const sum=a=>a.reduce((x,y)=>x+y,0);
 
-const iso=x=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`,REAL=iso(new Date(Date.now()-2*36e5)),LAUNCH="2026-11-10";
+const iso=x=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`,REAL=iso(new Date(Date.now()-2*36e5)),LAUNCH="2026-11-13";
 // ?day=YYYY-MM-DD replays a past day from the archive (never a future one)
 const qd=new URLSearchParams(location.search).get("day"),TODAY=qd&&/^\d{4}-\d\d-\d\d$/.test(qd)&&qd<REAL&&qd>=LAUNCH?qd:REAL,ARCHIVE=TODAY!==REAL,d=new Date(TODAY+"T12:00");
 const DAY=Math.floor((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-Date.UTC(2026,0,1))/864e5)+1;
