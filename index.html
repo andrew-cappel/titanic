@@ -189,10 +189,12 @@ const P=[
 ["Name five breeds of horse","arabian|thoroughbred|quarter horse|appaloosa|mustang|clydesdale|shire|percheron|friesian|andalusian|lipizzaner|morgan|tennessee walker/tennessee walking horse|paint|shetland|welsh pony|connemara|icelandic|haflinger|belgian|hanoverian|trakehner|akhal teke|standardbred|mongolian|falabella|fjord|lusitano|paso fino|criollo|brumby|exmoor|dartmoor|suffolk punch|gypsy vanner|holsteiner|oldenburg|marwari|knabstrupper"]
 ];
 const $=id=>document.getElementById(id);
-const norm=s=>s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/&/g," and ").replace(/['’.]/g,"").replace(/[-_\/,]/g," ").replace(/[^a-z0-9+# ]/g,"").replace(/\s+/g," ").trim().replace(/^(the|a|an) /,"").replace(/ (river|ocean|sea)$/,"");
+const NUMW={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20};
+const norm=s=>s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/&/g," and ").replace(/['’.]/g,"").replace(/[-_\/,]/g," ").replace(/[^a-z0-9+# ]/g,"").replace(/\s+/g," ").trim().replace(/^(the|a|an) /,"").replace(/ (river|ocean|sea)$/,"").replace(/\b[a-z]+\b/g,w=>w in NUMW?String(NUMW[w]):w);
 const lev=(a,b)=>{if(Math.abs(a.length-b.length)>3)return 9;const d=[];for(let i=0;i<=a.length;i++){d[i]=[i];for(let j=1;j<=b.length;j++)d[i][j]=i?Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1),i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1]?d[i-2][j-2]+1:9):j}return d[a.length][b.length]};   // typos, incl. swapped letters
 const TOL=(a,b)=>{const m=Math.min(a.length,b.length);return m<4?0:m<9?1:m<13?2:3};
-const near=(n,k)=>n[0]===k[0]&&Math.min(lev(n,k),lev(n.replace(/ /g,""),k.replace(/ /g,"")))<=TOL(n,k);
+const skel=t=>t.replace(/ /g,"").replace(/(.)\1+/g,"$1").replace(/[aeiouy]/g,"");   // consonant outline: "chihauha" ~ "chihuahua"
+const near=(n,k)=>n[0]===k[0]&&(Math.min(lev(n,k),lev(n.replace(/ /g,""),k.replace(/ /g,"")))<=TOL(n,k)||(Math.min(n.length,k.length)>=5&&Math.abs(n.length-k.length)<=1&&skel(n).length>=3&&skel(n)===skel(k)));
 const CAPS=new Set(["bmw","gmc","byd","vw","bs","sql","php","k2","vb","f#","c#","c++","c","r"]);
 const SMALL=new Set(["a","an","and","the","of","in","is","on","to","at","da","de","del","della","van","von","di","d'este","de'","n"]);
 const title=s=>CAPS.has(s)?s.toUpperCase():s.split(" ").map((w,i)=>i&&SMALL.has(w)?w:w.charAt(0).toUpperCase()+w.slice(1)).join(" ").replace(/-([a-z])/g,(m,c)=>"-"+c.toUpperCase());
@@ -310,8 +312,9 @@ function match(v){
   const n=norm(v);if(!n)return -1;const A=run.pr.a;
   for(let i=0;i<A.length;i++)if(A[i].keys.some(k=>k===n||k+"s"===n||k+"es"===n||k===n.replace(/s$/,"")))return i;
   let best=-1,bd=9;
-  for(let i=0;i<A.length;i++)for(const k of A[i].keys){if(sig(k)!==sig(n)||!near(n,k))continue;const dd=lev(n,k);if(dd<bd){bd=dd;best=i}}
-  return best;
+  let tie=false,bk="";for(let i=0;i<A.length;i++){let d=9,kk="";for(const k of A[i].keys)if(sig(k)===sig(n)&&near(n,k)){const x=lev(n,k);if(x<d){d=x;kk=k}}
+    if(d<bd){bd=d;best=i;bk=kk;tie=false}else if(d===bd&&d<9){if(kk!==bk&&lev(kk,bk)>TOL(kk,bk))tie=true;else if(norm(A[i].label)===kk)best=i}}   // same word in two names ("Merino", "Poll Merino"): take the plain one
+  return tie?-1:best;   // like Krillion: never guess between two answers
 }
 $("form").onsubmit=e=>{
   e.preventDefault();if(!run)return;const inp=$("answer"),v=inp.value.trim();if(!v)return;
